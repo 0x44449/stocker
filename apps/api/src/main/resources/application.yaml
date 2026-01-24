@@ -1,3 +1,21 @@
 spring:
   application:
     name: api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/stocker
+    username: stocker
+    password: stocker
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+crawler:
+  user-agent: "StockerBot/1.0 (news-crawler)"
+  max-articles: 10
+  crawl-delay-seconds: 2
+  raw-text-max-length: 2000
+  raw-retention-days: 30
