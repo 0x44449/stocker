@@ -5,6 +5,11 @@ spring:
     url: jdbc:postgresql://localhost:5432/stocker
     username: stocker
     password: stocker
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      keepalive-time: 60000
+      connection-timeout: 30000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -15,7 +20,7 @@ spring:
 
 crawler:
   user-agent: "StockerBot/1.0 (news-crawler)"
-  max-articles: 10
-  crawl-delay-seconds: 2
+  delay-seconds: 2
+  max-articles-per-provider: 1000
   raw-text-max-length: 2000
   raw-retention-days: 30

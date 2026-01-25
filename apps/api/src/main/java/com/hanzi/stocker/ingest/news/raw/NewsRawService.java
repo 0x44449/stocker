@@ -1,8 +1,7 @@
 package com.hanzi.stocker.ingest.news.raw;
 
-import com.hanzi.stocker.ingest.news.article.ParsedArticle;
-import com.hanzi.stocker.ingest.news.config.NewsCrawlerConfig;
-import com.hanzi.stocker.ingest.news.crawler.NewsCrawlContext;
+import com.hanzi.stocker.ingest.news.engine.CrawlConfig;
+import com.hanzi.stocker.ingest.news.model.ParsedArticle;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -12,31 +11,35 @@ public class NewsRawService {
 
     private final NewsRawRepository repository;
     private final NewsRawMapper mapper;
-    private final NewsCrawlerConfig config;
+    private final CrawlConfig config;
 
-    public NewsRawService(NewsRawRepository repository, NewsRawMapper mapper, NewsCrawlerConfig config) {
+    public NewsRawService(NewsRawRepository repository, NewsRawMapper mapper, CrawlConfig config) {
         this.repository = repository;
         this.mapper = mapper;
         this.config = config;
     }
 
-    public boolean save(ParsedArticle article, NewsCrawlContext context) {
-        if (article.getRawText() == null || article.getRawText().isBlank()) {
+    public boolean save(String source, ParsedArticle article, String url) {
+        if (article.rawText() == null || article.rawText().isBlank()) {
             return false;
         }
 
-        if (article.getRawText().length() > config.getRawTextMaxLength()) {
-            return false;
-        }
-
-        if (repository.existsByUrl(article.getUrl())) {
+        if (repository.existsByUrl(url)) {
             return false;
         }
 
         LocalDateTime collectedAt = LocalDateTime.now();
         LocalDateTime expiresAt = collectedAt.plusDays(config.getRawRetentionDays());
 
-        NewsRawEntity entity = mapper.toEntity(article, context, collectedAt, expiresAt);
+        NewsRawEntity entity = mapper.toEntity(
+                source,
+                article,
+                url,
+                collectedAt,
+                expiresAt,
+                config.getRawTextMaxLength()
+        );
+
         repository.save(entity);
         return true;
     }

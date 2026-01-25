@@ -1,44 +1,58 @@
 package com.hanzi.stocker.api.internal;
 
-import com.hanzi.stocker.ingest.news.config.NewsCrawlerConfig;
-import com.hanzi.stocker.ingest.news.crawler.NewsCrawlContext;
-import com.hanzi.stocker.ingest.news.crawler.NewsCrawler;
+import com.hanzi.stocker.ingest.news.engine.NewsCrawlEngine;
+import com.hanzi.stocker.ingest.news.provider.ProviderRegistry;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @RestController
 @RequestMapping("/api/internal/crawler")
 public class CrawlerController {
 
-    private final NewsCrawler newsCrawler;
-    private final NewsCrawlerConfig config;
+    private final NewsCrawlEngine crawlEngine;
+    private final ProviderRegistry providerRegistry;
+    private final ExecutorService executor;
 
-    public CrawlerController(NewsCrawler newsCrawler, NewsCrawlerConfig config) {
-        this.newsCrawler = newsCrawler;
-        this.config = config;
+    public CrawlerController(NewsCrawlEngine crawlEngine, ProviderRegistry providerRegistry) {
+        this.crawlEngine = crawlEngine;
+        this.providerRegistry = providerRegistry;
+        this.executor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
-    @PostMapping("/run")
-    public NewsCrawler.CrawlResult run(
-            @RequestParam String source,
-            @RequestParam String baseUrl,
-            @RequestParam String sitemapPath,
-            @RequestParam String press,
-            @RequestParam(defaultValue = "article") String articleSelector) {
-
-        NewsCrawlContext context = NewsCrawlContext.builder()
-                .source(source)
-                .baseUrl(baseUrl)
-                .sitemapPath(sitemapPath)
-                .press(press)
-                .articleSelector(articleSelector)
-                .userAgent(config.getUserAgent())
-                .maxArticles(config.getMaxArticles())
-                .crawlDelaySeconds(config.getCrawlDelaySeconds())
-                .build();
-
-        return newsCrawler.crawl(context);
+    @GetMapping("/providers")
+    public List<String> listProviders() {
+        return providerRegistry.getAllIds();
     }
+
+    @PostMapping("/run/{providerId}")
+    public ResponseEntity<NewsCrawlEngine.CrawlResult> run(@PathVariable String providerId) {
+        return providerRegistry.get(providerId)
+                .map(provider -> ResponseEntity.ok(crawlEngine.crawl(provider)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/run-all")
+    public List<ProviderCrawlResult> runAll() {
+        List<CompletableFuture<ProviderCrawlResult>> futures = providerRegistry.getAll().stream()
+                .map(provider -> CompletableFuture.supplyAsync(
+                        () -> new ProviderCrawlResult(provider.id(), crawlEngine.crawl(provider)),
+                        executor
+                ))
+                .toList();
+
+        return futures.stream()
+                .map(CompletableFuture::join)
+                .toList();
+    }
+
+    public record ProviderCrawlResult(String providerId, NewsCrawlEngine.CrawlResult result) {}
 }
