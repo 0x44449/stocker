@@ -17,7 +17,7 @@ import java.util.Optional;
 @Component
 public class NewsCrawlEngine {
 
-    private static final Logger log = LoggerFactory.getLogger(NewsCrawlEngine.class);
+    private static final Logger crawlLog = LoggerFactory.getLogger("CRAWL");
 
     private final RobotsService robotsService;
     private final SitemapService sitemapService;
@@ -38,34 +38,30 @@ public class NewsCrawlEngine {
         this.config = config;
     }
 
-    public CrawlResult crawl(NewsProvider provider) {
+    public CrawlResult crawl(NewsProvider provider, String jobId) {
         int successCount = 0;
         int failCount = 0;
         int skipCount = 0;
 
-        log.info("Starting crawl for provider: {}", provider.id());
+        crawlLog.info("event=PROVIDER_START jobId={} provider={}", jobId, provider.id());
 
         // Step 1: Fetch robots.txt
         RobotsService.RobotsPolicy robotsPolicy = robotsService.fetch(
                 provider.baseUrl(),
                 config.getUserAgent()
         );
-        log.info("Loaded robots.txt: {} disallow rules", robotsPolicy.disallowedPaths().size());
 
         // Step 2: Determine sitemap URLs
         List<String> sitemapUrls = determineSitemapUrls(robotsPolicy, provider);
         if (sitemapUrls.isEmpty()) {
-            log.warn("No sitemap found for provider: {}", provider.id());
-            return new CrawlResult(0, 0, 0, "No sitemap found");
+            crawlLog.warn("event=PROVIDER_SKIPPED jobId={} provider={} reason=NO_SITEMAP", jobId, provider.id());
+            return new CrawlResult(0, 0, 0, 0, "No sitemap found");
         }
-        log.info("Found {} sitemap candidates", sitemapUrls.size());
 
         // Step 3: Try sitemaps until we find articles
         List<SitemapEntry> entries = new ArrayList<>();
-        String usedSitemap = null;
 
         for (String sitemapUrl : sitemapUrls) {
-            log.debug("Trying sitemap: {}", sitemapUrl);
             Optional<List<SitemapEntry>> entriesOpt = sitemapService.fetch(sitemapUrl, config.getUserAgent());
 
             if (entriesOpt.isPresent() && !entriesOpt.get().isEmpty()) {
@@ -75,24 +71,22 @@ public class NewsCrawlEngine {
 
                 if (!filtered.isEmpty()) {
                     entries = new ArrayList<>(filtered);
-                    usedSitemap = sitemapUrl;
                     break;
                 }
             }
         }
 
         if (entries.isEmpty()) {
-            log.warn("No article URLs found in any sitemap for provider: {}", provider.id());
-            return new CrawlResult(0, 0, 0, "No articles in sitemap");
+            crawlLog.warn("event=PROVIDER_SKIPPED jobId={} provider={} reason=NO_ARTICLES_IN_SITEMAP", jobId, provider.id());
+            return new CrawlResult(0, 0, 0, 0, "No articles in sitemap");
         }
-
-        log.info("Using sitemap: {} with {} entries", usedSitemap, entries.size());
 
         // Step 4: Limit article URLs
         List<SitemapEntry> articleEntries = entries.stream()
                 .limit(config.getMaxArticlesPerProvider())
                 .toList();
-        log.info("Processing {} article URLs", articleEntries.size());
+
+        int fetched = articleEntries.size();
 
         // Step 5: Process each article
         for (int i = 0; i < articleEntries.size(); i++) {
@@ -102,7 +96,7 @@ public class NewsCrawlEngine {
             // Check robots.txt
             String path = URI.create(articleUrl).getPath();
             if (!robotsPolicy.isAllowed(path)) {
-                log.debug("Skipping disallowed URL: {}", articleUrl);
+                crawlLog.warn("event=ARTICLE_SKIPPED jobId={} provider={} reason=ROBOTS_DISALLOWED", jobId, provider.id());
                 skipCount++;
                 continue;
             }
@@ -116,12 +110,12 @@ public class NewsCrawlEngine {
             FetchResult fetchResult = httpFetcher.fetch(articleUrl, config.getUserAgent());
 
             if (fetchResult.isRateLimited()) {
-                log.warn("Rate limited at URL: {}, stopping provider crawl", articleUrl);
-                return new CrawlResult(successCount, failCount, skipCount, "Rate limited");
+                crawlLog.warn("event=PROVIDER_SKIPPED jobId={} provider={} reason=HTTP_429 action=SKIP_PROVIDER", jobId, provider.id());
+                return new CrawlResult(fetched, successCount, failCount, skipCount, "Rate limited");
             }
 
             if (!fetchResult.isSuccess()) {
-                log.debug("Failed to fetch article: {} (status={})", articleUrl, fetchResult.statusCode());
+                crawlLog.warn("event=ARTICLE_SKIPPED jobId={} provider={} reason=FETCH_FAILED status={}", jobId, provider.id(), fetchResult.statusCode());
                 failCount++;
                 continue;
             }
@@ -131,7 +125,7 @@ public class NewsCrawlEngine {
                 ParsedArticle article = provider.parseArticle(fetchResult.body(), articleUrl);
 
                 if (article == null || article.rawText() == null || article.rawText().isBlank()) {
-                    log.debug("Empty article content: {}", articleUrl);
+                    crawlLog.warn("event=ARTICLE_SKIPPED jobId={} provider={} reason=EMPTY_CONTENT", jobId, provider.id());
                     skipCount++;
                     continue;
                 }
@@ -140,22 +134,21 @@ public class NewsCrawlEngine {
                 boolean saved = newsRawService.save(provider.id(), article, articleUrl);
                 if (saved) {
                     successCount++;
-                    log.debug("Saved article: {}", article.title());
                 } else {
+                    crawlLog.warn("event=ARTICLE_SKIPPED jobId={} provider={} reason=DUPLICATE", jobId, provider.id());
                     skipCount++;
-                    log.debug("Skipped article (duplicate): {}", articleUrl);
                 }
 
             } catch (Exception e) {
-                log.warn("Failed to parse article {}: {}", articleUrl, e.getMessage());
+                crawlLog.warn("event=ARTICLE_SKIPPED jobId={} provider={} reason=PARSE_FAILED", jobId, provider.id());
                 failCount++;
             }
         }
 
-        log.info("Crawl completed for {}: success={}, fail={}, skip={}",
-                provider.id(), successCount, failCount, skipCount);
+        crawlLog.info("event=PROVIDER_SUCCESS jobId={} provider={} fetched={} saved={} failed={} skipped={}",
+                jobId, provider.id(), fetched, successCount, failCount, skipCount);
 
-        return new CrawlResult(successCount, failCount, skipCount, null);
+        return new CrawlResult(fetched, successCount, failCount, skipCount, null);
     }
 
     private List<String> determineSitemapUrls(RobotsService.RobotsPolicy robotsPolicy, NewsProvider provider) {
@@ -185,7 +178,7 @@ public class NewsCrawlEngine {
         }
     }
 
-    public record CrawlResult(int successCount, int failCount, int skipCount, String error) {
+    public record CrawlResult(int fetchedCount, int successCount, int failCount, int skipCount, String error) {
         public boolean hasError() {
             return error != null;
         }
