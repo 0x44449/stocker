@@ -24,3 +24,8 @@ crawler:
   max-articles-per-provider: 1000
   raw-text-max-length: 2000
   raw-retention-days: 30
+
+logging:
+  level:
+    CRAWL: INFO
+    com.hanzi.stocker.ingest.news: INFO
