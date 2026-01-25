@@ -1,6 +1,6 @@
 package com.hanzi.stocker.api.internal;
 
-import com.hanzi.stocker.ingest.news.engine.NewsCrawlEngine;
+import com.hanzi.stocker.ingest.news.engine.NewsCrawlJobService;
 import com.hanzi.stocker.ingest.news.provider.ProviderRegistry;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,22 +10,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/internal/crawler")
 public class CrawlerController {
 
-    private final NewsCrawlEngine crawlEngine;
+    private final NewsCrawlJobService jobService;
     private final ProviderRegistry providerRegistry;
-    private final ExecutorService executor;
 
-    public CrawlerController(NewsCrawlEngine crawlEngine, ProviderRegistry providerRegistry) {
-        this.crawlEngine = crawlEngine;
+    public CrawlerController(NewsCrawlJobService jobService, ProviderRegistry providerRegistry) {
+        this.jobService = jobService;
         this.providerRegistry = providerRegistry;
-        this.executor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     @GetMapping("/providers")
@@ -33,26 +29,21 @@ public class CrawlerController {
         return providerRegistry.getAllIds();
     }
 
+    @GetMapping("/status")
+    public Map<String, Object> status() {
+        return Map.of("running", jobService.isRunning());
+    }
+
     @PostMapping("/run/{providerId}")
-    public ResponseEntity<NewsCrawlEngine.CrawlResult> run(@PathVariable String providerId) {
-        return providerRegistry.get(providerId)
-                .map(provider -> ResponseEntity.ok(crawlEngine.crawl(provider)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<NewsCrawlJobService.ProviderCrawlResult> run(@PathVariable String providerId) {
+        if (providerRegistry.get(providerId).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(jobService.runSingle(providerId));
     }
 
     @PostMapping("/run-all")
-    public List<ProviderCrawlResult> runAll() {
-        List<CompletableFuture<ProviderCrawlResult>> futures = providerRegistry.getAll().stream()
-                .map(provider -> CompletableFuture.supplyAsync(
-                        () -> new ProviderCrawlResult(provider.id(), crawlEngine.crawl(provider)),
-                        executor
-                ))
-                .toList();
-
-        return futures.stream()
-                .map(CompletableFuture::join)
-                .toList();
+    public List<NewsCrawlJobService.ProviderCrawlResult> runAll() {
+        return jobService.runAll();
     }
-
-    public record ProviderCrawlResult(String providerId, NewsCrawlEngine.CrawlResult result) {}
 }
