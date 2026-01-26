@@ -31,7 +31,7 @@ public class CrawlSchedulerConfig {
         return scheduler;
     }
 
-    @Scheduled(cron = "0 0 */2 * * *", scheduler = "crawlTaskScheduler")
+    @Scheduled(cron = "0 0 9,12,15,18 * * *", scheduler = "crawlTaskScheduler")
     public void runScheduledCrawl() {
         log.info("Scheduled crawl triggered");
         jobService.runAll();
