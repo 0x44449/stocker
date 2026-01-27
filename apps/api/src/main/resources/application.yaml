@@ -25,7 +25,12 @@ crawler:
   raw-text-max-length: 2000
   raw-retention-days: 30
 
+krx:
+  username: ${KRX_USERNAME:}
+  password: ${KRX_PASSWORD:}
+
 logging:
   level:
     CRAWL: INFO
     com.hanzi.stocker.ingest.news: INFO
+    com.hanzi.stocker.ingest.krx: INFO
