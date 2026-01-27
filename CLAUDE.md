@@ -20,6 +20,12 @@ All commands run from `apps/api/`:
 # Run all tests
 ./gradlew test
 
+# Run a single test class
+./gradlew test --tests "com.hanzi.stocker.ingest.krx.index.KrxIndexCsvParserTest"
+
+# Run a single test method
+./gradlew test --tests "KrxIndexCsvParserTest.parse_normalRow_parsesAllFields"
+
 # Clean build artifacts
 ./gradlew clean
 ```
@@ -29,6 +35,7 @@ All commands run from `apps/api/`:
 - Java 25 with Spring Boot 4.0.2
 - PostgreSQL with Flyway migrations
 - Spring Data JPA, WebMVC, Validation
+- Jsoup for HTML parsing
 - No Lombok (explicit code preferred)
 
 ## Architecture
@@ -37,25 +44,39 @@ Monolithic Spring Boot with role-based package separation:
 
 ```
 com.hanzi.stocker
-├── api/        # REST controllers + request/response DTOs only (no business logic)
-├── domain/     # Core business logic, entities, calculations
-├── ingest/     # Batch jobs for data collection (price, DART disclosure)
-├── infra/      # External integrations (DB repos, HTTP clients, LLM)
-└── common/     # Config, exceptions, utilities
+├── api/           # REST controllers (public + internal admin endpoints)
+├── api/internal/  # Internal admin endpoints (crawler triggers)
+└── ingest/        # Data collection modules
+    ├── news/      # News article crawling from press sites
+    └── krx/       # KRX market data (index, investor flow)
 ```
 
-**Central service**: `SummaryService.getSituation(code, date)` orchestrates data retrieval, fact card generation, and optional LLM summarization.
+### Ingest Module Patterns
+
+**News Crawling** (`ingest/news/`):
+- `NewsProvider` interface: Each press site implements parsing, URL filtering, sitemap hints
+- `ProviderRegistry`: Auto-discovers all `NewsProvider` beans via Spring DI
+- `NewsCrawlEngine`: Orchestrates robots.txt → sitemap → fetch → parse → save
+- `CrawlLock`: Prevents concurrent crawl jobs via AtomicBoolean
+- Rate limiting: Configurable delay between requests, respects HTTP 429
+
+**KRX Data** (`ingest/krx/`):
+- `KrxSessionProvider`: Manages authenticated KRX sessions (credentials via env vars `KRX_USERNAME`, `KRX_PASSWORD`)
+- `KrxFileDownloadClient`: Common OTP generation + CSV download flow
+- Per-data-type modules: `index/` for market indices, `investor/` for investor flow data
+- Each has: Fetcher → CsvParser → RawService → Repository
 
 ## Database
 
 - Flyway migrations in `src/main/resources/db/migration/`
-- Naming: `V1__init.sql`, `V2__add_daily_price.sql`, etc.
-- JPA should use `ddl-auto: validate` (Flyway owns schema)
+- Naming: `V1__init.sql`, `V2__add_news_raw.sql`, etc.
+- JPA uses `ddl-auto: validate` (Flyway owns schema)
 - Never modify already-applied migration files; create new versions instead
 
 ## Key Design Decisions
 
 - **Fact cards over raw data**: Normalize/enrich data before LLM processing
-- **Upsert strategy**: Daily prices and disclosures are idempotent; use native query upsert when JPA insufficient
+- **Upsert strategy**: Daily data is idempotent; use native query upsert when JPA insufficient
 - **Timezone**: KST (+09:00) for display, UTC for storage
-- **WebClient**: Preferred over RestTemplate for HTTP calls; include timeouts and rate limit handling
+- **HTTP clients**: Use timeouts and rate limit handling; respect robots.txt for crawlers
+- **Crawl logging**: Structured logs to `CRAWL` logger for monitoring (event=, jobId=, provider=)
