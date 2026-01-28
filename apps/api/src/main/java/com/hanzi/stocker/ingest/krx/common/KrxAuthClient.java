@@ -9,13 +9,13 @@ import org.springframework.web.client.RestClient;
 import java.util.List;
 
 @Component
-public class KrxAuth {
+public class KrxAuthClient {
 
     private static final String LOGIN_URL = "https://data.krx.co.kr/contents/MDC/COMS/client/MDCCOMS001D1.cmd";
 
     private final RestClient restClient;
 
-    public KrxAuth() {
+    public KrxAuthClient() {
         this.restClient = RestClient.builder()
                 .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                 .build();

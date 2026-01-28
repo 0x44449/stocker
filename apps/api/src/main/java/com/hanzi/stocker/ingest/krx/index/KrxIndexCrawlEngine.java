@@ -1,6 +1,5 @@
 package com.hanzi.stocker.ingest.krx.index;
 
-import com.hanzi.stocker.ingest.krx.common.KrxCsvParser;
 import com.hanzi.stocker.ingest.krx.common.KrxFileClient;
 import com.hanzi.stocker.ingest.krx.common.KrxSession;
 import org.apache.commons.csv.CSVFormat;
@@ -25,8 +24,7 @@ public class KrxIndexCrawlEngine {
 
     public KrxIndexCrawlEngine(
             KrxFileClient fileClient,
-            KrxSession session,
-            KrxCsvParser csvParser
+            KrxSession session
     ) {
         this.fileClient = fileClient;
         this.session = session;
