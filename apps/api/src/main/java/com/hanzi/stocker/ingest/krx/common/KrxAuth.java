@@ -21,8 +21,8 @@ public class KrxAuth {
                 .build();
     }
 
-    public LoginSession login(String userId, String password) {
-        var formData = new LinkedMultiValueMap<>();
+    public KrxSession login(String userId, String password) {
+        var formData = new LinkedMultiValueMap<String, String>();
         formData.add("mbrNm", "");
         formData.add("telNo", "");
         formData.add("di", "");
@@ -38,27 +38,22 @@ public class KrxAuth {
                 .retrieve()
                 .toBodilessEntity();
 
-        List<String> cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
-        if (cookies == null) {
-            throw new IllegalStateException("No Set-Cookie header in response");
-        }
-
-        for (String cookie : cookies) {
-            if (cookie.startsWith("JSESSIONID=")) {
-                int endIndex = cookie.indexOf(';');
-                String sessionId = (endIndex == -1)
-                        ? cookie.substring("JSESSIONID=".length())
-                        : cookie.substring("JSESSIONID=".length(), endIndex);
-                return new LoginSession(sessionId);
-            }
-        }
-
-        throw new IllegalStateException("JSESSIONID not found in Set-Cookie headers");
+        var sessionId = extractSessionId(response.getHeaders().get(HttpHeaders.SET_COOKIE));
+        return sessionId != null ? new KrxSession(sessionId) : null;
     }
 
-    public record LoginSession(String sessionId) {
-        public String toCookieValue() {
-            return "JSESSIONID=" + sessionId;
+    String extractSessionId(List<String> cookies) {
+        if (cookies == null) {
+            return null;
         }
+        for (var cookie : cookies) {
+            if (cookie.startsWith(KrxSession.SESSION_PREFIX)) {
+                int endIndex = cookie.indexOf(';');
+                return (endIndex == -1)
+                        ? cookie.substring(KrxSession.SESSION_PREFIX.length())
+                        : cookie.substring(KrxSession.SESSION_PREFIX.length(), endIndex);
+            }
+        }
+        return null;
     }
 }

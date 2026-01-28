@@ -21,7 +21,7 @@ public class KrxFileClient {
                 .build();
     }
 
-    private String generateOtp(KrxAuth.LoginSession session, String referer, MultiValueMap<String, String> formData) {
+    private String generateOtp(KrxSession session, String referer, MultiValueMap<String, String> formData) {
         String otp = restClient.post()
                 .uri(GENERATE_URL)
                 .header(HttpHeaders.COOKIE, session.toCookieValue())
@@ -38,8 +38,8 @@ public class KrxFileClient {
         return otp.trim();
     }
 
-    private byte[] downloadFile(KrxAuth.LoginSession session, String referer, String otp) {
-        var formData = new LinkedMultiValueMap<>();
+    private byte[] downloadFile(KrxSession session, String referer, String otp) {
+        var formData = new LinkedMultiValueMap<String, String>();
         formData.add("code", otp);
 
         return restClient.post()
@@ -52,7 +52,7 @@ public class KrxFileClient {
                 .body(byte[].class);
     }
 
-    public byte[] download(KrxAuth.LoginSession session, String referer, MultiValueMap<String, String> formData) {
+    public byte[] download(KrxSession session, String referer, MultiValueMap<String, String> formData) {
         String otp = generateOtp(session, referer, formData);
         return downloadFile(session, referer, otp);
     }
