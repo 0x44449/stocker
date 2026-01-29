@@ -49,9 +49,15 @@ public class NewsCrawlEngine {
         }
 
         // 2. 각 기사 처리
-        for (String url : articleUrls) {
+        for (int i = 0; i < articleUrls.size(); i++) {
+            String url = articleUrls.get(i);
+
             if (repository.existsByUrl(url)) {
                 continue;
+            }
+
+            if (i > 0) {
+                sleep(config.getDelaySeconds());
             }
 
             String html = fetchHtml(url);
@@ -133,6 +139,14 @@ public class NewsCrawlEngine {
             return nodes.item(0).getTextContent();
         }
         return null;
+    }
+
+    private void sleep(int seconds) {
+        try {
+            Thread.sleep(seconds * 1000L);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private String fetchHtml(String url) {

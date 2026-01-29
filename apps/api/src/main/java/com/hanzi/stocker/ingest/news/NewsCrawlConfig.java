@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 public class NewsCrawlConfig {
 
     private String userAgent = "StockerBot/1.0";
+    private int delaySeconds = 2;
     private int rawTextMaxLength = 2000;
     private int rawRetentionDays = 30;
 
@@ -17,6 +18,14 @@ public class NewsCrawlConfig {
 
     public void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
+    }
+
+    public int getDelaySeconds() {
+        return delaySeconds;
+    }
+
+    public void setDelaySeconds(int delaySeconds) {
+        this.delaySeconds = delaySeconds;
     }
 
     public int getRawTextMaxLength() {

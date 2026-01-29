@@ -1,9 +1,10 @@
 package com.hanzi.stocker.ingest.news;
 
-import com.hanzi.stocker.ingest.news.provider.NewsProvider;
 import com.hanzi.stocker.ingest.news.provider.ProviderRegistry;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class NewsCrawlScheduler {
@@ -18,8 +19,10 @@ public class NewsCrawlScheduler {
 
     @Scheduled(cron = "0 0 9,12,15,18 * * *")
     public void run() {
-        for (NewsProvider provider : providerRegistry.getAll()) {
-            engine.crawl(provider);
-        }
+        var futures = providerRegistry.getAll().stream()
+                .map(provider -> CompletableFuture.runAsync(() -> engine.crawl(provider)))
+                .toList();
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 }
