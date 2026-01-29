@@ -1,4 +1,4 @@
-package com.hanzi.stocker.ingest.news.model;
+package com.hanzi.stocker.ingest.news.provider;
 
 import java.time.LocalDateTime;
 

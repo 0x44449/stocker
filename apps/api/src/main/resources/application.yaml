@@ -19,11 +19,10 @@ spring:
     locations: classpath:db/migration
 
 crawler:
-  user-agent: "StockerBot/1.0 (news-crawler)"
-  delay-seconds: 2
-  max-articles-per-provider: 1000
-  raw-text-max-length: 2000
-  raw-retention-days: 30
+  news:
+    user-agent: "StockerBot/1.0"
+    raw-text-max-length: 2000
+    raw-retention-days: 30
 
 krx:
   username: ${KRX_USERNAME:}

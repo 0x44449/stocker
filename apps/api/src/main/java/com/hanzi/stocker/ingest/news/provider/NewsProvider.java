@@ -1,7 +1,5 @@
 package com.hanzi.stocker.ingest.news.provider;
 
-import com.hanzi.stocker.ingest.news.model.ParsedArticle;
-
 import java.util.List;
 
 public interface NewsProvider {

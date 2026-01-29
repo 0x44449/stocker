@@ -1,15 +1,13 @@
-package com.hanzi.stocker.ingest.news.engine;
+package com.hanzi.stocker.ingest.news;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConfigurationProperties(prefix = "crawler")
-public class CrawlConfig {
+@ConfigurationProperties(prefix = "crawler.news")
+public class NewsCrawlConfig {
 
-    private String userAgent = "StockerBot/1.0 (news-crawler)";
-    private int delaySeconds = 2;
-    private int maxArticlesPerProvider = 10;
+    private String userAgent = "StockerBot/1.0";
     private int rawTextMaxLength = 2000;
     private int rawRetentionDays = 30;
 
@@ -19,22 +17,6 @@ public class CrawlConfig {
 
     public void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
-    }
-
-    public int getDelaySeconds() {
-        return delaySeconds;
-    }
-
-    public void setDelaySeconds(int delaySeconds) {
-        this.delaySeconds = delaySeconds;
-    }
-
-    public int getMaxArticlesPerProvider() {
-        return maxArticlesPerProvider;
-    }
-
-    public void setMaxArticlesPerProvider(int maxArticlesPerProvider) {
-        this.maxArticlesPerProvider = maxArticlesPerProvider;
     }
 
     public int getRawTextMaxLength() {

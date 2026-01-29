@@ -1,6 +1,6 @@
 package com.hanzi.stocker.ingest.news.provider.mk;
 
-import com.hanzi.stocker.ingest.news.model.ParsedArticle;
+import com.hanzi.stocker.ingest.news.provider.ParsedArticle;
 import com.hanzi.stocker.ingest.news.provider.NewsProvider;
 import org.springframework.stereotype.Component;
 
