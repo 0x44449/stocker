@@ -24,10 +24,12 @@ public class KrxIndexCrawlEngine {
     private static final String REFERER = "https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020101";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
+    private final KrxSessionProvider sessionProvider;
     private final KrxFileClient fileClient;
     private final MarketIndexDailyRawRepository repository;
 
-    public KrxIndexCrawlEngine(KrxFileClient fileClient, MarketIndexDailyRawRepository repository) {
+    public KrxIndexCrawlEngine(KrxSessionProvider sessionProvider, KrxFileClient fileClient, MarketIndexDailyRawRepository repository) {
+        this.sessionProvider = sessionProvider;
         this.fileClient = fileClient;
         this.repository = repository;
     }
@@ -43,7 +45,7 @@ public class KrxIndexCrawlEngine {
         formData.add("name", "fileDown");
         formData.add("url", "dbms/MDC/STAT/standard/MDCSTAT00101");
 
-        var csvBytes = fileClient.download(KrxSessionProvider.get(), REFERER, formData);
+        var csvBytes = fileClient.download(sessionProvider.get(), REFERER, formData);
 
         // 지수명,종가,대비,등락률,시가,고가,저가,거래량,거래대금,상장시가총액
         // "코스피","4990.07","37.54","0.76","4984.08","5021.13","4926.22","611779504","30014732983122","4124568849042154"

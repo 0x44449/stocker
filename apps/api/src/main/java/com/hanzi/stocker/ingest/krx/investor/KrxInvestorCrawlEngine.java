@@ -18,10 +18,12 @@ public class KrxInvestorCrawlEngine {
     private static final String REFERER = "https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020101";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
+    private final KrxSessionProvider sessionProvider;
     private final KrxFileClient fileClient;
     private final InvestorFlowDailyRawRepository repository;
 
-    public KrxInvestorCrawlEngine(KrxFileClient fileClient, InvestorFlowDailyRawRepository repository) {
+    public KrxInvestorCrawlEngine(KrxSessionProvider sessionProvider, KrxFileClient fileClient, InvestorFlowDailyRawRepository repository) {
+        this.sessionProvider = sessionProvider;
         this.fileClient = fileClient;
         this.repository = repository;
     }
@@ -44,7 +46,7 @@ public class KrxInvestorCrawlEngine {
         formData.add("name", "fileDown");
         formData.add("url", "dbms/MDC/STAT/standard/MDCSTAT02201");
 
-        var csvBytes = fileClient.download(KrxSessionProvider.get(), REFERER, formData);
+        var csvBytes = fileClient.download(sessionProvider.get(), REFERER, formData);
 
         // 투자자구분,거래량_매도,거래량_매수,거래량_순매수,거래대금_매도,거래대금_매수,거래대금_순매수
         try (var reader = new InputStreamReader(new ByteArrayInputStream(csvBytes), Charset.forName("EUC-KR"))) {

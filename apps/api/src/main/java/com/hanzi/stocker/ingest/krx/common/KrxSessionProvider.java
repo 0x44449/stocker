@@ -1,21 +1,30 @@
 package com.hanzi.stocker.ingest.krx.common;
 
+import com.hanzi.stocker.ingest.krx.KrxCrawlConfig;
+import org.springframework.stereotype.Component;
+
+@Component
 public class KrxSessionProvider {
 
-    private static volatile KrxSession session;
-    private static final Object lock = new Object();
+    private final KrxCrawlConfig config;
+    private final KrxAuthClient authClient;
 
-    private KrxSessionProvider() {}
+    private volatile KrxSession session;
+    private final Object lock = new Object();
 
-    public static KrxSession get() {
+    public KrxSessionProvider(KrxCrawlConfig config, KrxAuthClient authClient) {
+        this.config = config;
+        this.authClient = authClient;
+    }
+
+    public KrxSession get() {
         if (session != null && !session.isExpired()) {
             return session;
         }
 
         synchronized (lock) {
             if (session == null || session.isExpired()) {
-                var authClient = new KrxAuthClient();
-                session = authClient.login("", "");
+                session = authClient.login(config.getUsername(), config.getPassword());
             }
             return session;
         }
