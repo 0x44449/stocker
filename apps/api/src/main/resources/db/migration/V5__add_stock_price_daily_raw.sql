@@ -1,0 +1,19 @@
+CREATE TABLE stock_price_daily_raw (
+    trd_dd DATE NOT NULL,
+    market TEXT NOT NULL,
+    stock_code TEXT NOT NULL,
+    stock_name TEXT NOT NULL,
+    close BIGINT NULL,
+    diff BIGINT NULL,
+    diff_rate NUMERIC(10, 2) NULL,
+    open BIGINT NULL,
+    high BIGINT NULL,
+    low BIGINT NULL,
+    volume BIGINT NULL,
+    value BIGINT NULL,
+    market_cap BIGINT NULL,
+    listed_shares BIGINT NULL,
+    source TEXT NOT NULL DEFAULT 'KRX',
+    ingested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (trd_dd, stock_code)
+);
