@@ -1,7 +1,8 @@
 package com.hanzi.stocker.ingest.krx.investor;
 
 import com.hanzi.stocker.ingest.krx.common.KrxFileClient;
-import com.hanzi.stocker.ingest.krx.common.KrxSession;
+import com.hanzi.stocker.ingest.krx.common.KrxSessionProvider;
+import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 
 import java.io.ByteArrayInputStream;
@@ -9,21 +10,20 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 
+@Component
 public class KrxInvestorCrawlEngine {
 
     private static final String REFERER = "https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020101";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    private final KrxSession session;
     private final KrxFileClient fileClient;
+    private final InvestorFlowDailyRawRepository repository;
 
-    public KrxInvestorCrawlEngine(
-            KrxFileClient fileClient,
-            KrxSession session
-    ) {
+    public KrxInvestorCrawlEngine(KrxFileClient fileClient, InvestorFlowDailyRawRepository repository) {
         this.fileClient = fileClient;
-        this.session = session;
+        this.repository = repository;
     }
 
     public void crawl(LocalDate date, String market) {
@@ -44,35 +44,42 @@ public class KrxInvestorCrawlEngine {
         formData.add("name", "fileDown");
         formData.add("url", "dbms/MDC/STAT/standard/MDCSTAT02201");
 
-        var csvBytes = fileClient.download(session, REFERER, formData);
+        var csvBytes = fileClient.download(KrxSessionProvider.get(), REFERER, formData);
 
         // 투자자구분,거래량_매도,거래량_매수,거래량_순매수,거래대금_매도,거래대금_매수,거래대금_순매수
-        // "개인","1716581206","1748578011","31996805","19277216604858","19060194839120","-217021765738"
-        /** investor_name = "개인"
-         sell_volume = 1716581206
-         buy_volume = 1748578011
-         net_volume = 31996805
-         sell_value = 19277216604858
-         buy_value = 19060194839120
-         net_value = -217021765738
-         */
         try (var reader = new InputStreamReader(new ByteArrayInputStream(csvBytes), Charset.forName("EUC-KR"))) {
             var parser = org.apache.commons.csv.CSVFormat.Builder.create()
+                    .setHeader()
                     .setSkipHeaderRecord(true)
                     .setIgnoreEmptyLines(true)
                     .build()
                     .parse(reader);
+            var entities = new ArrayList<InvestorFlowDailyRawEntity>();
             for (var record : parser) {
-                String investorName = record.get("투자자구분");
-                String sellVolumeStr = record.get("거래량_매도");
-                String buyVolumeStr = record.get("거래량_매수");
-                String netVolumeStr = record.get("거래량_순매수");
-                String sellValueStr = record.get("거래대금_매도");
-                String buyValueStr = record.get("거래대금_매수");
-                String netValueStr = record.get("거래대금_순매수");
+                var entity = new InvestorFlowDailyRawEntity(
+                        date,
+                        market,
+                        record.get("투자자구분"),
+                        parseLong(record.get("거래량_매도")),
+                        parseLong(record.get("거래량_매수")),
+                        parseLong(record.get("거래량_순매수")),
+                        parseLong(record.get("거래대금_매도")),
+                        parseLong(record.get("거래대금_매수")),
+                        parseLong(record.get("거래대금_순매수")),
+                        "KRX"
+                );
+                entities.add(entity);
             }
+            repository.saveAll(entities);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse KRX Investor Flow CSV", e);
         }
+    }
+
+    private Long parseLong(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return Long.parseLong(value);
     }
 }

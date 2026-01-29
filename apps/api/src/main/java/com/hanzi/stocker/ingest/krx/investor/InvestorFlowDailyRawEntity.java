@@ -1,0 +1,65 @@
+package com.hanzi.stocker.ingest.krx.investor;
+
+import jakarta.persistence.*;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "investor_flow_daily_raw")
+@IdClass(InvestorFlowDailyRawId.class)
+public class InvestorFlowDailyRawEntity {
+
+    @Id
+    @Column(name = "trd_dd")
+    private LocalDate trdDd;
+
+    @Id
+    @Column(name = "market")
+    private String market;
+
+    @Id
+    @Column(name = "investor_name")
+    private String investorName;
+
+    @Column(name = "sell_volume")
+    private Long sellVolume;
+
+    @Column(name = "buy_volume")
+    private Long buyVolume;
+
+    @Column(name = "net_volume")
+    private Long netVolume;
+
+    @Column(name = "sell_value")
+    private Long sellValue;
+
+    @Column(name = "buy_value")
+    private Long buyValue;
+
+    @Column(name = "net_value")
+    private Long netValue;
+
+    @Column(name = "source")
+    private String source;
+
+    @Column(name = "ingested_at", insertable = false, updatable = false)
+    private OffsetDateTime ingestedAt;
+
+    public InvestorFlowDailyRawEntity() {}
+
+    public InvestorFlowDailyRawEntity(LocalDate trdDd, String market, String investorName,
+                                      Long sellVolume, Long buyVolume, Long netVolume,
+                                      Long sellValue, Long buyValue, Long netValue, String source) {
+        this.trdDd = trdDd;
+        this.market = market;
+        this.investorName = investorName;
+        this.sellVolume = sellVolume;
+        this.buyVolume = buyVolume;
+        this.netVolume = netVolume;
+        this.sellValue = sellValue;
+        this.buyValue = buyValue;
+        this.netValue = netValue;
+        this.source = source;
+    }
+}
