@@ -7,8 +7,10 @@ from fastapi import Depends, FastAPI, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from sqlalchemy import text
+
 from analyzer.batch import run_batch, is_running as is_batch_running
-from analyzer.embedding import run_embedding_batch, is_running as is_embedding_running
+from analyzer.embedding import run_embedding_batch, is_running as is_embedding_running, _get_model
 from analyzer.database import get_db
 from analyzer.llm import extract_companies
 from analyzer.models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult
@@ -99,3 +101,24 @@ def embedding_start():
 @app.get("/embedding/status")
 def embedding_status():
     return {"running": is_embedding_running()}
+
+
+@app.get("/search")
+def search(q: str = Query(), limit: int = Query(default=10), db: Session = Depends(get_db)):
+    model = _get_model()
+    query_vector = model.encode(q).tolist()
+
+    sql = text("""
+        SELECT e.news_id, n.title, e.embedding <=> :query_vector AS distance
+        FROM news_embedding e
+        JOIN news_raw n ON e.news_id = n.id
+        ORDER BY distance
+        LIMIT :limit
+    """)
+    rows = db.execute(sql, {"query_vector": str(query_vector), "limit": limit}).fetchall()
+    return {
+        "results": [
+            {"news_id": row[0], "title": row[1], "distance": round(row[2], 4)}
+            for row in rows
+        ]
+    }
