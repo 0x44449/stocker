@@ -1,14 +1,29 @@
+import threading
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import Depends, FastAPI, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from analyzer.batch import run_batch, is_running
 from analyzer.database import get_db
 from analyzer.llm import extract_companies
 from analyzer.models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult
 
-app = FastAPI(title="Stocker Analyzer")
+scheduler = BackgroundScheduler()
+scheduler.add_job(run_batch, "cron", hour="9,21", id="batch_extract")
+
+
+@asynccontextmanager
+async def lifespan(app):
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+
+app = FastAPI(title="Stocker Analyzer", lifespan=lifespan)
 
 
 @app.get("/health")
@@ -56,3 +71,16 @@ def extract(req: ExtractRequest, db: Session = Depends(get_db)):
 
     db.commit()
     return {"news_id": news.id, "companies": companies}
+
+
+@app.post("/batch/start")
+def batch_start():
+    if is_running():
+        return {"status": "already_running"}
+    threading.Thread(target=run_batch, daemon=True).start()
+    return {"status": "started"}
+
+
+@app.get("/batch/status")
+def batch_status():
+    return {"running": is_running()}
