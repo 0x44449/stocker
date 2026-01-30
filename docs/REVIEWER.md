@@ -104,10 +104,15 @@ feat: KRX 크롤러 설정 구조 변경
 
 ### 명령어 순서
 ```bash
-# 1. 변경 파일 스테이징
-git add <files>
+# 1. WORK.md 아카이브
+mkdir -p docs/WORKS
+mv docs/WORK.md docs/WORKS/yyyymmdd_NNN.md  # 날짜_순번 (예: 20260130_001.md)
 
-# 2. 커밋 (메시지와 함께)
+# 2. 변경 파일 스테이징 (아카이브된 WORK.md 포함)
+git add <files>
+git add docs/WORKS/yyyymmdd_NNN.md
+
+# 3. 커밋 (메시지와 함께)
 git commit -m "<message>"
 ```
 

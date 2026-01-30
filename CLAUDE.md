@@ -48,7 +48,7 @@ com.hanzi.stocker
 ├── api/internal/  # Internal admin endpoints (crawler triggers)
 └── ingest/        # Data collection modules
     ├── news/      # News article crawling from press sites
-    └── krx/       # KRX market data (index, investor flow)
+    └── krx/       # KRX market data (index, investor flow, stock prices)
 ```
 
 ### Ingest Module Patterns
@@ -62,9 +62,9 @@ com.hanzi.stocker
 
 **KRX Data** (`ingest/krx/`):
 - `KrxSessionProvider`: Manages authenticated KRX sessions (credentials via env vars `KRX_USERNAME`, `KRX_PASSWORD`)
-- `KrxFileDownloadClient`: Common OTP generation + CSV download flow
-- Per-data-type modules: `index/` for market indices, `investor/` for investor flow data
-- Each has: Fetcher → CsvParser → RawService → Repository
+- `KrxFileClient`: Common OTP generation + CSV download flow
+- Per-data-type modules: `index/` for market indices, `investor/` for investor flow, `stock/` for stock prices
+- Each has: CrawlEngine + CrawlScheduler → CsvParser → Repository
 
 ## Database
 
@@ -80,3 +80,23 @@ com.hanzi.stocker
 - **Timezone**: KST (+09:00) for display, UTC for storage
 - **HTTP clients**: Use timeouts and rate limit handling; respect robots.txt for crawlers
 - **Crawl logging**: Structured logs to `CRAWL` logger for monitoring (event=, jobId=, provider=)
+
+## Infrastructure
+
+- PostgreSQL via Docker Compose: `docker compose -f infra/docker/docker-compose.yml up -d`
+- KRX credentials: set `KRX_USERNAME` and `KRX_PASSWORD` env vars
+
+## Coding Rules (from docs/CODING_RULE.md)
+
+- **No premature abstraction**: Don't extract common functions unless explicitly requested; inline instead
+- **Minimize classes**: Avoid over-engineering simple flows into many classes
+- **YAGNI**: Only build what's needed now; hardcode first, no interfaces until 2+ implementations
+- **Happy path first**: Add error handling only when failures actually occur
+- **Feature-based packages**: Group by feature (not layer), place shared code in nearest `common/`
+- **Incremental development**: Work in small chunks, ask before deciding edge cases; leave TODOs for uncertain parts
+
+## Commit Conventions
+
+- Conventional format: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`
+- Korean commit messages
+- Never push to remote without explicit instruction
