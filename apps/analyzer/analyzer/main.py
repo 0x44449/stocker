@@ -7,13 +7,15 @@ from fastapi import Depends, FastAPI, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from analyzer.batch import run_batch, is_running
+from analyzer.batch import run_batch, is_running as is_batch_running
+from analyzer.embedding import run_embedding_batch, is_running as is_embedding_running
 from analyzer.database import get_db
 from analyzer.llm import extract_companies
 from analyzer.models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(run_batch, "cron", hour="9,21", id="batch_extract")
+scheduler.add_job(run_embedding_batch, "cron", hour="0,12", id="batch_embedding")
 
 
 @asynccontextmanager
@@ -75,7 +77,7 @@ def extract(req: ExtractRequest, db: Session = Depends(get_db)):
 
 @app.post("/batch/start")
 def batch_start():
-    if is_running():
+    if is_batch_running():
         return {"status": "already_running"}
     threading.Thread(target=run_batch, daemon=True).start()
     return {"status": "started"}
@@ -83,4 +85,17 @@ def batch_start():
 
 @app.get("/batch/status")
 def batch_status():
-    return {"running": is_running()}
+    return {"running": is_batch_running()}
+
+
+@app.post("/embedding/start")
+def embedding_start():
+    if is_embedding_running():
+        return {"status": "already_running"}
+    threading.Thread(target=run_embedding_batch, daemon=True).start()
+    return {"status": "started"}
+
+
+@app.get("/embedding/status")
+def embedding_status():
+    return {"running": is_embedding_running()}

@@ -1,3 +1,4 @@
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import BigInteger, String, DateTime, Column
 
 from analyzer.database import Base
@@ -27,3 +28,12 @@ class NewsCompanyExtractionResult(Base):
     id = Column(BigInteger, primary_key=True)
     extraction_id = Column(BigInteger)
     company_name = Column(String)
+
+
+class NewsEmbedding(Base):
+    __tablename__ = "news_embedding"
+
+    id = Column(BigInteger, primary_key=True)
+    news_id = Column(BigInteger)
+    embedding = Column(Vector(1024))
+    created_at = Column(DateTime)
