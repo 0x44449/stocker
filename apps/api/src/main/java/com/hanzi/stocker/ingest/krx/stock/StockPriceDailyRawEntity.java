@@ -19,10 +19,10 @@ public class StockPriceDailyRawEntity {
     @Column(name = "stock_code")
     private String stockCode;
 
-    @Column(name = "market")
+    @Column(name = "market", nullable = false)
     private String market;
 
-    @Column(name = "stock_name")
+    @Column(name = "stock_name", nullable = false)
     private String stockName;
 
     @Column(name = "close")
@@ -55,10 +55,10 @@ public class StockPriceDailyRawEntity {
     @Column(name = "listed_shares")
     private Long listedShares;
 
-    @Column(name = "source")
+    @Column(name = "source", nullable = false)
     private String source;
 
-    @Column(name = "ingested_at", insertable = false, updatable = false)
+    @Column(name = "ingested_at", insertable = false, updatable = false, nullable = false)
     private OffsetDateTime ingestedAt;
 
     public StockPriceDailyRawEntity() {}

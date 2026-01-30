@@ -46,10 +46,10 @@ public class MarketIndexDailyRawEntity {
     @Column(name = "market_cap")
     private Long marketCap;
 
-    @Column(name = "source")
+    @Column(name = "source", nullable = false)
     private String source;
 
-    @Column(name = "ingested_at", insertable = false, updatable = false)
+    @Column(name = "ingested_at", insertable = false, updatable = false, nullable = false)
     private OffsetDateTime ingestedAt;
 
     public MarketIndexDailyRawEntity() {}

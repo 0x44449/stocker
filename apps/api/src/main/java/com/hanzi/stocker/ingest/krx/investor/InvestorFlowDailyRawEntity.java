@@ -40,10 +40,10 @@ public class InvestorFlowDailyRawEntity {
     @Column(name = "net_value")
     private Long netValue;
 
-    @Column(name = "source")
+    @Column(name = "source", nullable = false)
     private String source;
 
-    @Column(name = "ingested_at", insertable = false, updatable = false)
+    @Column(name = "ingested_at", insertable = false, updatable = false, nullable = false)
     private OffsetDateTime ingestedAt;
 
     public InvestorFlowDailyRawEntity() {}
