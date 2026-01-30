@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, String, Column
+from sqlalchemy import BigInteger, String, DateTime, Column
 
 from analyzer.database import Base
 
@@ -16,3 +16,14 @@ class NewsCompanyExtraction(Base):
 
     id = Column(BigInteger, primary_key=True)
     news_id = Column(BigInteger)
+    status = Column(String)
+    created_at = Column(DateTime)
+    processed_at = Column(DateTime)
+
+
+class NewsCompanyExtractionResult(Base):
+    __tablename__ = "news_company_extraction_result"
+
+    id = Column(BigInteger, primary_key=True)
+    extraction_id = Column(BigInteger)
+    company_name = Column(String)
