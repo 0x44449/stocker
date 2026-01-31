@@ -2,6 +2,8 @@ package com.hanzi.stocker.ingest.news;
 
 import com.hanzi.stocker.ingest.news.provider.NewsProvider;
 import com.hanzi.stocker.ingest.news.provider.ParsedArticle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -19,6 +21,7 @@ import java.util.List;
 @Component
 public class NewsCrawlEngine {
 
+    private static final Logger log = LoggerFactory.getLogger(NewsCrawlEngine.class);
     private static final int MAX_INDEX_DEPTH = 2;
 
     private final NewsCrawlConfig config;
@@ -34,6 +37,8 @@ public class NewsCrawlEngine {
     }
 
     public void crawl(NewsProvider provider) {
+        log.info("[{}] 크롤링 시작", provider.id());
+
         // 1. sitemap에서 기사 URL 수집
         List<String> articleUrls = new ArrayList<>();
         for (String sitemapUrl : provider.sitemapHints()) {
@@ -48,11 +53,17 @@ public class NewsCrawlEngine {
             }
         }
 
+        log.info("[{}] 기사 URL 수집 완료: {}건", provider.id(), articleUrls.size());
+
         // 2. 각 기사 처리
+        int savedCount = 0;
+        int skippedCount = 0;
         for (int i = 0; i < articleUrls.size(); i++) {
             String url = articleUrls.get(i);
 
             if (repository.existsByUrl(url)) {
+                log.debug("[{}] 이미 존재하여 스킵: {}", provider.id(), url);
+                skippedCount++;
                 continue;
             }
 
@@ -62,11 +73,13 @@ public class NewsCrawlEngine {
 
             String html = fetchHtml(url);
             if (html == null) {
+                log.debug("[{}] HTML 가져오기 실패: {}", provider.id(), url);
                 continue;
             }
 
             ParsedArticle article = provider.parseArticle(html, url);
             if (article == null || article.rawText() == null || article.rawText().isBlank()) {
+                log.debug("[{}] 파싱 실패 또는 본문 없음: {}", provider.id(), url);
                 continue;
             }
 
@@ -85,7 +98,11 @@ public class NewsCrawlEngine {
             entity.setCollectedAt(LocalDateTime.now());
             entity.setExpiresAt(LocalDateTime.now().plusDays(config.getRawRetentionDays()));
             repository.save(entity);
+            savedCount++;
+            log.debug("[{}] 저장 완료: {}", provider.id(), url);
         }
+
+        log.info("[{}] 크롤링 종료: 수집={}건, 저장={}건, 스킵={}건", provider.id(), articleUrls.size(), savedCount, skippedCount);
     }
 
     private List<String> fetchSitemap(String sitemapUrl, int depth) {
