@@ -1,7 +1,7 @@
 import logging
 import time
 
-from langchain_ollama import ChatOllama
+from langchain_ollama import OllamaLLM
 
 from config import OLLAMA_BASE_URL
 
@@ -33,11 +33,10 @@ def extract_companies(text: str) -> list[str]:
     logger.info(f"LLM 호출 시작 - 텍스트 길이: {text_length}")
 
     start_time = time.time()
-    llm = ChatOllama(model="qwen3:8b", base_url=OLLAMA_BASE_URL, reasoning=False)
-    response = llm.invoke(PROMPT_TEMPLATE.format(text=text))
+    llm = OllamaLLM(model="qwen3:8b", base_url=OLLAMA_BASE_URL)
+    prompt = PROMPT_TEMPLATE.format(text=text)
+    raw = llm.invoke(prompt).strip()
     elapsed = time.time() - start_time
-
-    raw = response.content.strip()
     logger.info(f"LLM 호출 완료 - 소요시간: {elapsed:.2f}초, 응답: {raw}")
     if not raw or raw == "없음":
         return []
