@@ -2,24 +2,14 @@ import logging
 import threading
 from datetime import datetime, timezone
 
-from sentence_transformers import SentenceTransformer
-
-from analyzer.database import SessionLocal
-from analyzer.models import NewsRaw, NewsEmbedding
+from database import SessionLocal
+from embedding.service import get_model
+from models import NewsRaw, NewsEmbedding
 
 logger = logging.getLogger(__name__)
 
 _running = False
 _lock = threading.Lock()
-
-_model = None
-
-
-def _get_model():
-    global _model
-    if _model is None:
-        _model = SentenceTransformer("nlpai-lab/KURE-v1")
-    return _model
 
 
 def is_running() -> bool:
@@ -43,7 +33,7 @@ def run_embedding_batch():
 def _process_all():
     db = SessionLocal()
     try:
-        model = _get_model()
+        model = get_model()
         while True:
             embedded_news_ids = db.query(NewsEmbedding.news_id)
             news = (

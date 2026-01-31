@@ -1,6 +1,6 @@
 from langchain_ollama import ChatOllama
 
-from analyzer.config import OLLAMA_BASE_URL
+from config import OLLAMA_BASE_URL
 
 PROMPT_TEMPLATE = """텍스트에서 회사/기업 이름만 추출해. 다른 설명 없이 이름만 쉼표로 나열해.
 

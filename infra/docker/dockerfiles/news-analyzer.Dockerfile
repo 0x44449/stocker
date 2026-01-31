@@ -17,8 +17,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=build /usr/local/bin /usr/local/bin
 
-COPY analyzer analyzer
+COPY main.py config.py database.py models.py ./
+COPY extraction extraction
+COPY embedding embedding
+COPY search search
 RUN chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8000
-CMD ["uvicorn", "analyzer.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

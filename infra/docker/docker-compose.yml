@@ -44,11 +44,11 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  analyzer:
+  news-analyzer:
     build:
-      context: ../../apps/analyzer
-      dockerfile: ../../infra/docker/dockerfiles/analyzer.Dockerfile
-    container_name: stocker-analyzer
+      context: ../../apps/news-analyzer
+      dockerfile: ../../infra/docker/dockerfiles/news-analyzer.Dockerfile
+    container_name: stocker-news-analyzer
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       OLLAMA_HOST: ${OLLAMA_HOST}

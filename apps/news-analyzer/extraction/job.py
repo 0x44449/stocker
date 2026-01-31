@@ -2,9 +2,9 @@ import logging
 import threading
 from datetime import datetime, timezone
 
-from analyzer.database import SessionLocal
-from analyzer.llm import extract_companies
-from analyzer.models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult
+from database import SessionLocal
+from extraction.service import extract_companies
+from models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult
 
 logger = logging.getLogger(__name__)
 

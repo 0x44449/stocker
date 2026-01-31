@@ -1,7 +1,7 @@
 [project]
-name = "analyzer"
+name = "news-analyzer"
 version = "0.1.0"
-description = "Stocker Analyzer"
+description = "Stocker News Analyzer"
 authors = [
     {name = "hanzi"}
 ]

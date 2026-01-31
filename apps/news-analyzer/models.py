@@ -1,7 +1,7 @@
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import BigInteger, String, DateTime, Column
 
-from analyzer.database import Base
+from database import Base
 
 
 class NewsRaw(Base):
