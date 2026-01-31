@@ -1,0 +1,101 @@
+package com.hanzi.stocker.ingest.krx.master;
+
+import com.hanzi.stocker.ingest.krx.common.KrxFileClient;
+import com.hanzi.stocker.ingest.krx.common.KrxSessionProvider;
+import org.apache.commons.csv.CSVFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+
+@Component
+public class KrxMasterCrawlEngine {
+
+    private static final Logger log = LoggerFactory.getLogger(KrxMasterCrawlEngine.class);
+    private static final String REFERER = "https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201020201";
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+
+    private final KrxSessionProvider sessionProvider;
+    private final KrxFileClient fileClient;
+    private final StockMasterRepository repository;
+
+    public KrxMasterCrawlEngine(KrxSessionProvider sessionProvider, KrxFileClient fileClient, StockMasterRepository repository) {
+        this.sessionProvider = sessionProvider;
+        this.fileClient = fileClient;
+        this.repository = repository;
+    }
+
+    @Transactional
+    public void crawl() {
+        var formData = new LinkedMultiValueMap<String, String>();
+        formData.add("locale", "ko_KR");
+        formData.add("mktId", "STK");
+        formData.add("share", "1");
+        formData.add("csvxls_isNo", "false");
+        formData.add("name", "fileDown");
+        formData.add("url", "dbms/MDC/STAT/standard/MDCSTAT01901");
+
+        var csvBytes = fileClient.download(sessionProvider.get(), REFERER, formData);
+
+        try (var reader = new InputStreamReader(new ByteArrayInputStream(csvBytes), Charset.forName("EUC-KR"))) {
+            var parser = CSVFormat.Builder.create()
+                    .setHeader()
+                    .setSkipHeaderRecord(true)
+                    .setIgnoreEmptyLines(true)
+                    .build()
+                    .parse(reader);
+
+            var entities = new ArrayList<StockMasterEntity>();
+            for (var record : parser) {
+                entities.add(new StockMasterEntity(
+                        record.get("표준코드"),
+                        record.get("단축코드"),
+                        record.get("한글 종목명"),
+                        record.get("한글 종목약명"),
+                        record.get("영문 종목명"),
+                        parseDate(record.get("상장일")),
+                        record.get("시장구분"),
+                        record.get("증권구분"),
+                        blankToNull(record.get("소속부")),
+                        record.get("주식종류"),
+                        parseLong(record.get("액면가")),
+                        parseLong(record.get("상장주식수"))
+                ));
+            }
+            repository.saveAll(entities);
+            log.info("종목 마스터 크롤링 완료 - {}건 저장", entities.size());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to parse KRX stock master CSV", e);
+        }
+    }
+
+    private LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return LocalDate.parse(value, DATE_FORMAT);
+    }
+
+    private Long parseLong(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return Long.parseLong(value.replace(",", ""));
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value;
+    }
+}
