@@ -39,8 +39,8 @@ public class HkProvider implements NewsProvider {
     @Override
     public List<String> sitemapHints() {
         return List.of(
-                BASE_URL + "/sitemap/sitemap-news.xml",
-                BASE_URL + "/sitemap.xml"
+                BASE_URL + "/sitemap/latest-article.xml",
+                BASE_URL + "/sitemap/daily-article.xml"
         );
     }
 
