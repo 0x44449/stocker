@@ -1,6 +1,10 @@
+import logging
+
 from langchain_ollama import ChatOllama
 
 from config import OLLAMA_BASE_URL
+
+logger = logging.getLogger(__name__)
 
 PROMPT_TEMPLATE = """텍스트에서 회사/기업 이름만 추출해. 다른 설명 없이 이름만 쉼표로 나열해.
 
@@ -18,9 +22,11 @@ PROMPT_TEMPLATE = """텍스트에서 회사/기업 이름만 추출해. 다른 �
 
 
 def extract_companies(text: str) -> list[str]:
+    """뉴스 텍스트에서 회사/기업 이름을 추출한다."""
     llm = ChatOllama(model="qwen3:8b", base_url=OLLAMA_BASE_URL, reasoning=False)
     response = llm.invoke(PROMPT_TEMPLATE.format(text=text))
     raw = response.content.strip()
+    logger.info(f"LLM raw response: {raw}")
     if not raw:
         return []
     return [name.strip() for name in raw.split(",") if name.strip()]
