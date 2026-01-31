@@ -34,13 +34,13 @@ usage() {
     echo "  api              API 서버만"
     echo "  analyzer         Analyzer 서버만"
     echo "  postgres         PostgreSQL만"
-    echo "  (생략시 전체)"
+    echo "  (생략시 api, analyzer)"
     echo ""
     echo "Examples:"
-    echo "  $0                      # 전체 배포"
-    echo "  $0 api                  # API만 배포"
+    echo "  $0                      # api, analyzer 배포"
+    echo "  $0 postgres             # PostgreSQL만 배포"
     echo "  $0 --no-cache api       # API 캐시 없이 재빌드"
-    echo "  $0 --down               # 전체 재시작"
+    echo "  $0 --down               # api, analyzer 재시작"
 }
 
 # 옵션 파싱
@@ -89,14 +89,16 @@ if [ ! -f ".env" ]; then
     cp .env.example .env
 fi
 
+# 서비스 미지정 시 기본값: api, analyzer
+if [ ${#SERVICES[@]} -eq 0 ]; then
+    SERVICES=("api" "analyzer")
+fi
+
 # 컨테이너 중지
 if [ "$DO_DOWN" = true ]; then
     print_step "Stopping containers..."
-    if [ ${#SERVICES[@]} -eq 0 ]; then
-        docker-compose down
-    else
-        docker-compose stop "${SERVICES[@]}"
-    fi
+    docker-compose stop "${SERVICES[@]}"
+    docker-compose rm -f "${SERVICES[@]}"
 fi
 
 # 빌드 옵션
@@ -107,11 +109,7 @@ fi
 
 # 배포
 print_step "Building and deploying..."
-if [ ${#SERVICES[@]} -eq 0 ]; then
-    docker-compose up -d $BUILD_ARGS
-else
-    docker-compose up -d $BUILD_ARGS "${SERVICES[@]}"
-fi
+docker-compose up -d $BUILD_ARGS "${SERVICES[@]}"
 
 echo ""
 print_step "Deploy complete!"
