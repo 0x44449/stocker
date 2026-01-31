@@ -32,15 +32,15 @@ usage() {
     echo ""
     echo "Services:"
     echo "  api              API 서버만"
-    echo "  analyzer         Analyzer 서버만"
+    echo "  news-analyzer    News Analyzer 서버만"
     echo "  postgres         PostgreSQL만"
-    echo "  (생략시 api, analyzer)"
+    echo "  (생략시 api, news-analyzer)"
     echo ""
     echo "Examples:"
-    echo "  $0                      # api, analyzer 배포"
+    echo "  $0                      # api, news-analyzer 배포"
     echo "  $0 postgres             # PostgreSQL만 배포"
     echo "  $0 --no-cache api       # API 캐시 없이 재빌드"
-    echo "  $0 --down               # api, analyzer 재시작"
+    echo "  $0 --down               # api, news-analyzer 재시작"
 }
 
 # 옵션 파싱
@@ -62,7 +62,7 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
-        api|analyzer|postgres)
+        api|news-analyzer|postgres)
             SERVICES+=("$1")
             shift
             ;;
@@ -91,7 +91,7 @@ fi
 
 # 서비스 미지정 시 기본값: api, analyzer
 if [ ${#SERVICES[@]} -eq 0 ]; then
-    SERVICES=("api" "analyzer")
+    SERVICES=("api" "news-analyzer")
 fi
 
 # 컨테이너 중지
@@ -119,7 +119,7 @@ docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 echo ""
 echo "Endpoints:"
 echo "  - API:      http://localhost:28080/health"
-echo "  - Analyzer: http://localhost:28000/health"
+echo "  - News Analyzer: http://localhost:28000/health"
 echo ""
 echo "Logs:"
 echo "  docker-compose -f $DOCKER_DIR/docker-compose.yml logs -f"
