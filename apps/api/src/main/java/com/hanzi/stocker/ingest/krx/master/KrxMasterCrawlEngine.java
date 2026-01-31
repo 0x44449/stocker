@@ -71,7 +71,8 @@ public class KrxMasterCrawlEngine {
                             record.get("증권구분"),
                             blankToNull(record.get("소속부")),
                             record.get("주식종류"),
-                            parseLong(record.get("액면가")),
+                            // 액면가: 투자회사/펀드 등은 "무액면"으로 표기되어 숫자가 아닌 값은 null 처리
+                            parseLongOrNull(record.get("액면가")),
                             parseLong(record.get("상장주식수"))
                     ));
                 }
@@ -98,6 +99,21 @@ public class KrxMasterCrawlEngine {
             return null;
         }
         return Long.parseLong(value.replace(",", ""));
+    }
+
+    /**
+     * 숫자가 아닌 값은 null로 처리하는 느슨한 버전.
+     * 특수 케이스(예: 액면가의 "무액면")에만 사용.
+     */
+    private Long parseLongOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value.replace(",", ""));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String blankToNull(String value) {

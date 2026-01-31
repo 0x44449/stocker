@@ -28,6 +28,7 @@ usage() {
     echo "Options:"
     echo "  --no-cache       Docker 이미지 캐시 없이 재빌드"
     echo "  --down           컨테이너 중지 후 재시작"
+    echo "  --clean          이미지 삭제 후 재빌드 (env 변경 시 사용)"
     echo "  -h, --help       도움말"
     echo ""
     echo "Services:"
@@ -46,6 +47,7 @@ usage() {
 # 옵션 파싱
 NO_CACHE=false
 DO_DOWN=false
+DO_CLEAN=false
 SERVICES=()
 
 while [[ $# -gt 0 ]]; do
@@ -56,6 +58,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --down)
             DO_DOWN=true
+            shift
+            ;;
+        --clean)
+            DO_CLEAN=true
             shift
             ;;
         -h|--help)
@@ -95,10 +101,21 @@ if [ ${#SERVICES[@]} -eq 0 ]; then
 fi
 
 # 컨테이너 중지
-if [ "$DO_DOWN" = true ]; then
+if [ "$DO_DOWN" = true ] || [ "$DO_CLEAN" = true ]; then
     print_step "Stopping containers..."
     docker-compose stop "${SERVICES[@]}"
     docker-compose rm -f "${SERVICES[@]}"
+fi
+
+# 이미지 삭제
+if [ "$DO_CLEAN" = true ]; then
+    print_step "Removing images..."
+    for service in "${SERVICES[@]}"; do
+        image_name="docker-${service}"
+        if docker images | grep -q "$image_name"; then
+            docker rmi "$image_name" || true
+        fi
+    done
 fi
 
 # 빌드 옵션

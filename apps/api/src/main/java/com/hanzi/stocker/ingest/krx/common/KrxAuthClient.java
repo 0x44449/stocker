@@ -42,7 +42,9 @@ public class KrxAuthClient {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(formData)
                 .retrieve()
-                .toBodilessEntity();
+                .toEntity(String.class);
+
+        log.info("로그인 응답 body: {}", response.getBody());
 
         var sessionId = extractSessionId(response.getHeaders().get(HttpHeaders.SET_COOKIE));
 
