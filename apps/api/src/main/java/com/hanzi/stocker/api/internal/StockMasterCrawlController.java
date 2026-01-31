@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -18,9 +17,11 @@ public class StockMasterCrawlController {
         this.engine = engine;
     }
 
+    public record TriggerResponse(String status) {}
+
     @PostMapping
-    public Map<String, String> trigger() {
+    public TriggerResponse trigger() {
         CompletableFuture.runAsync(engine::crawl);
-        return Map.of("status", "started");
+        return new TriggerResponse("started");
     }
 }
