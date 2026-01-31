@@ -36,6 +36,8 @@ public class KrxMasterCrawlEngine {
 
     @Transactional
     public void crawl() {
+        log.info("종목 마스터 크롤링 시작");
+
         var formData = new LinkedMultiValueMap<String, String>();
         formData.add("locale", "ko_KR");
         formData.add("mktId", "STK");
@@ -44,37 +46,43 @@ public class KrxMasterCrawlEngine {
         formData.add("name", "fileDown");
         formData.add("url", "dbms/MDC/STAT/standard/MDCSTAT01901");
 
-        var csvBytes = fileClient.download(sessionProvider.get(), REFERER, formData);
+        try {
+            var csvBytes = fileClient.download(sessionProvider.get(), REFERER, formData);
+            log.info("CSV 다운로드 완료 - {} bytes", csvBytes.length);
 
-        try (var reader = new InputStreamReader(new ByteArrayInputStream(csvBytes), Charset.forName("EUC-KR"))) {
-            var parser = CSVFormat.Builder.create()
-                    .setHeader()
-                    .setSkipHeaderRecord(true)
-                    .setIgnoreEmptyLines(true)
-                    .build()
-                    .parse(reader);
+            try (var reader = new InputStreamReader(new ByteArrayInputStream(csvBytes), Charset.forName("EUC-KR"))) {
+                var parser = CSVFormat.Builder.create()
+                        .setHeader()
+                        .setSkipHeaderRecord(true)
+                        .setIgnoreEmptyLines(true)
+                        .build()
+                        .parse(reader);
 
-            var entities = new ArrayList<StockMasterEntity>();
-            for (var record : parser) {
-                entities.add(new StockMasterEntity(
-                        record.get("표준코드"),
-                        record.get("단축코드"),
-                        record.get("한글 종목명"),
-                        record.get("한글 종목약명"),
-                        record.get("영문 종목명"),
-                        parseDate(record.get("상장일")),
-                        record.get("시장구분"),
-                        record.get("증권구분"),
-                        blankToNull(record.get("소속부")),
-                        record.get("주식종류"),
-                        parseLong(record.get("액면가")),
-                        parseLong(record.get("상장주식수"))
-                ));
+                var entities = new ArrayList<StockMasterEntity>();
+                for (var record : parser) {
+                    entities.add(new StockMasterEntity(
+                            record.get("표준코드"),
+                            record.get("단축코드"),
+                            record.get("한글 종목명"),
+                            record.get("한글 종목약명"),
+                            record.get("영문 종목명"),
+                            parseDate(record.get("상장일")),
+                            record.get("시장구분"),
+                            record.get("증권구분"),
+                            blankToNull(record.get("소속부")),
+                            record.get("주식종류"),
+                            parseLong(record.get("액면가")),
+                            parseLong(record.get("상장주식수"))
+                    ));
+                }
+                log.info("CSV 파싱 완료 - {}건", entities.size());
+
+                repository.saveAll(entities);
+                log.info("종목 마스터 크롤링 완료 - {}건 저장", entities.size());
             }
-            repository.saveAll(entities);
-            log.info("종목 마스터 크롤링 완료 - {}건 저장", entities.size());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to parse KRX stock master CSV", e);
+        } catch (Exception e) {
+            log.error("종목 마스터 크롤링 실패", e);
+            throw new RuntimeException("종목 마스터 크롤링 실패", e);
         }
     }
 
