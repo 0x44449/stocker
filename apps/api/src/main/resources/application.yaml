@@ -2,7 +2,7 @@ spring:
   application:
     name: api
   datasource:
-    url: jdbc:postgresql://localhost:5432/stocker
+    url: jdbc:postgresql://localhost:5433/stocker
     username: stocker
     password: stocker
     hikari:

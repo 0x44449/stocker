@@ -5,3 +5,9 @@ __pycache__/
 dist/
 *.egg-info/
 .eggs/
+
+# Generated for Docker
+requirements.txt
+
+# Environment
+.env

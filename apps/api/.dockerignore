@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Gradle
+.gradle
+!gradle/wrapper/gradle-wrapper.jar
+
+# Build outputs (JAR는 별도 복사)
+# build 디렉토리 전체는 제외하되, libs는 필요
+build/classes
+build/generated
+build/reports
+build/resources
+build/test-results
+build/tmp
+
+# IDE
+.idea
+*.iml
+.vscode
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config
+*.local
+.env

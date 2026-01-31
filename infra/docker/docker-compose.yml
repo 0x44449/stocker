@@ -1,15 +1,71 @@
+name: stocker
+
 services:
   postgres:
     image: pgvector/pgvector:pg17
     container_name: stocker-postgres
     environment:
-      POSTGRES_DB: stocker
-      POSTGRES_USER: stocker
-      POSTGRES_PASSWORD: stocker
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${EXTERNAL_POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ../../apps/api
+      dockerfile: ../../infra/docker/dockerfiles/api.Dockerfile
+    container_name: stocker-api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      KRX_USERNAME: ${KRX_USERNAME}
+      KRX_PASSWORD: ${KRX_PASSWORD}
+      LOGGING_LEVEL_ROOT: ${API_LOG_LEVEL}
+    ports:
+      - "${EXTERNAL_API_PORT}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  analyzer:
+    build:
+      context: ../../apps/analyzer
+      dockerfile: ../../infra/docker/dockerfiles/analyzer.Dockerfile
+    container_name: stocker-analyzer
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      OLLAMA_HOST: ${OLLAMA_HOST}
+      OLLAMA_PORT: ${OLLAMA_PORT}
+      LOG_LEVEL: ${ANALYZER_LOG_LEVEL}
+    ports:
+      - "${EXTERNAL_ANALYZER_PORT}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
 volumes:
   postgres_data:
