@@ -1,4 +1,5 @@
 import logging
+import time
 
 from langchain_ollama import ChatOllama
 
@@ -28,10 +29,16 @@ PROMPT_TEMPLATE = """아래 텍스트에서 회사/기업 이름만 추출해서
 
 def extract_companies(text: str) -> list[str]:
     """뉴스 텍스트에서 회사/기업 이름을 추출한다."""
+    text_length = len(text)
+    logger.info(f"LLM 호출 시작 - 텍스트 길이: {text_length}")
+
+    start_time = time.time()
     llm = ChatOllama(model="qwen3:8b", base_url=OLLAMA_BASE_URL, reasoning=False)
     response = llm.invoke(PROMPT_TEMPLATE.format(text=text))
+    elapsed = time.time() - start_time
+
     raw = response.content.strip()
-    logger.info(f"LLM raw response: {raw}")
+    logger.info(f"LLM 호출 완료 - 소요시간: {elapsed:.2f}초, 응답: {raw}")
     if not raw or raw == "없음":
         return []
     return [name.strip() for name in raw.split(",") if name.strip()]

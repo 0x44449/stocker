@@ -1,5 +1,6 @@
 import logging
 import threading
+import time
 from datetime import datetime, timezone
 
 from database import SessionLocal
@@ -31,6 +32,8 @@ def run_batch():
 
 
 def _process_all():
+    logger.info("배치 시작")
+    count = 0
     db = SessionLocal()
     try:
         while True:
@@ -43,6 +46,9 @@ def _process_all():
             )
             if news is None:
                 break
+
+            logger.info(f"처리 시작 - news_id={news.id}, title={news.title[:50]}")
+            start_time = time.time()
 
             try:
                 companies = extract_companies(news.raw_text)
@@ -61,9 +67,13 @@ def _process_all():
                         company_name=name,
                     ))
                 db.commit()
-                logger.info(f"Extracted news_id={news.id}: {companies}")
+
+                elapsed = time.time() - start_time
+                logger.info(f"처리 완료 - news_id={news.id}, 소요시간: {elapsed:.2f}초, 결과: {companies}")
+                count += 1
             except Exception:
                 db.rollback()
+                elapsed = time.time() - start_time
                 extraction = NewsCompanyExtraction(
                     news_id=news.id,
                     status="failed",
@@ -71,6 +81,7 @@ def _process_all():
                 )
                 db.add(extraction)
                 db.commit()
-                logger.exception(f"Failed to process news_id={news.id}")
+                logger.exception(f"처리 실패 - news_id={news.id}, 소요시간: {elapsed:.2f}초")
     finally:
         db.close()
+    logger.info(f"배치 종료 - 총 {count}건 처리")
