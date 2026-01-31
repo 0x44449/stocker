@@ -5,7 +5,7 @@ import com.hanzi.stocker.ingest.news.NewsCrawlLock;
 import com.hanzi.stocker.ingest.news.provider.ProviderRegistry;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -22,15 +22,20 @@ public class NewsCrawlController {
         this.crawlLock = crawlLock;
     }
 
+    public record CrawlTriggerResponse(String status, String provider) {}
+
+    public record CrawlStatusResponse(String provider, String status) {}
+
+    /** 특정 프로바이더 크롤링을 수동으로 트리거한다. 비동기 실행 후 즉시 응답. */
     @PostMapping("/{providerId}")
-    public Map<String, String> trigger(@PathVariable String providerId) {
+    public CrawlTriggerResponse trigger(@PathVariable String providerId) {
         var provider = providerRegistry.get(providerId);
         if (provider.isEmpty()) {
-            return Map.of("status", "not_found", "provider", providerId);
+            return new CrawlTriggerResponse("not_found", providerId);
         }
 
         if (!crawlLock.tryLock(providerId)) {
-            return Map.of("status", "already_running", "provider", providerId);
+            return new CrawlTriggerResponse("already_running", providerId);
         }
 
         CompletableFuture.runAsync(() -> {
@@ -41,11 +46,14 @@ public class NewsCrawlController {
             }
         });
 
-        return Map.of("status", "started", "provider", providerId);
+        return new CrawlTriggerResponse("started", providerId);
     }
 
+    /** 프로바이더별 크롤링 상태를 조회한다. */
     @GetMapping("/status")
-    public Map<String, String> status() {
-        return crawlLock.allStatus(providerRegistry.getAllIds());
+    public List<CrawlStatusResponse> status() {
+        return providerRegistry.getAllIds().stream()
+                .map(id -> new CrawlStatusResponse(id, crawlLock.isRunning(id) ? "running" : "idle"))
+                .toList();
     }
 }

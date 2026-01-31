@@ -3,13 +3,13 @@ package com.hanzi.stocker.api;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 @RestController
 public class HealthController {
 
+    public record HealthResponse(String status) {}
+
     @GetMapping("/health")
-    public Map<String, String> health() {
-        return Map.of("status", "ok");
+    public HealthResponse health() {
+        return new HealthResponse("ok");
     }
 }
