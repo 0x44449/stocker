@@ -14,10 +14,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { mockMappingList } from "@/lib/mock-data";
+import { MappingStatus } from "@/lib/types";
 
 type Filter = "all" | "unmatched" | "done";
 
 const PAGE_SIZE = 10;
+
+const STATUS_CONFIG: Record<MappingStatus, { color: string; label: string }> = {
+  unmapped: { color: "bg-red-500", label: "미매핑" },
+  auto_pending: { color: "bg-yellow-500", label: "자동매칭 대기" },
+  partial: { color: "bg-orange-500", label: "부분 완료" },
+  done: { color: "bg-blue-500", label: "완료" },
+};
 
 export default function MappingsPage() {
   const router = useRouter();
@@ -96,30 +104,40 @@ export default function MappingsPage() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">상태</TableHead>
             <TableHead className="w-[50%]">뉴스 제목</TableHead>
             <TableHead>추출 기업명</TableHead>
             <TableHead>매칭상태</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginated.map((item) => (
-            <TableRow
-              key={item.newsId}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => router.push(`/mappings/${item.newsId}`)}
-            >
-              <TableCell className="font-medium truncate max-w-md">
-                {item.title}
-              </TableCell>
-              <TableCell>{formatNames(item.extractedNames)}</TableCell>
-              <TableCell>
-                {matchStatusBadge(item.matchedCount, item.totalCount)}
-              </TableCell>
-            </TableRow>
-          ))}
+          {paginated.map((item) => {
+            const statusCfg = STATUS_CONFIG[item.status];
+            return (
+              <TableRow
+                key={item.newsId}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => router.push(`/mappings/${item.newsId}`)}
+              >
+                <TableCell>
+                  <span
+                    className={`inline-block w-3 h-3 rounded-full ${statusCfg.color}`}
+                    title={statusCfg.label}
+                  />
+                </TableCell>
+                <TableCell className="font-medium truncate max-w-md">
+                  {item.title}
+                </TableCell>
+                <TableCell>{formatNames(item.extractedNames)}</TableCell>
+                <TableCell>
+                  {matchStatusBadge(item.matchedCount, item.totalCount)}
+                </TableCell>
+              </TableRow>
+            );
+          })}
           {paginated.length === 0 && (
             <TableRow>
-              <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                 결과가 없습니다.
               </TableCell>
             </TableRow>

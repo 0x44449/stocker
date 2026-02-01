@@ -1,9 +1,12 @@
+export type MappingStatus = "unmapped" | "auto_pending" | "partial" | "done";
+
 export interface NewsMappingSummary {
   newsId: number;
   title: string;
   extractedNames: string[];
   matchedCount: number;
   totalCount: number;
+  status: MappingStatus;
 }
 
 export interface CompanyMapping {
@@ -18,6 +21,10 @@ export interface CompanyMapping {
 export interface NewsMappingDetail {
   newsId: number;
   title: string;
+  content: string;
+  publishedAt: string | null;
+  collectedAt: string;
+  url: string | null;
   mappings: CompanyMapping[];
 }
 
