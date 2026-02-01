@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from database import SessionLocal
 from extraction.service import extract_companies
-from models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult
+from models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult, StockMaster, CompanyNameMapping
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,21 @@ def run_batch():
         _process_all()
     finally:
         _running = False
+
+
+def _match_company_to_stock(db, extracted_name: str) -> tuple[str | None, str]:
+    """stock_master에서 name_kr 또는 name_kr_short 정확 일치로 종목코드를 찾는다."""
+    stock = (
+        db.query(StockMaster)
+        .filter(
+            (StockMaster.name_kr == extracted_name) |
+            (StockMaster.name_kr_short == extracted_name)
+        )
+        .first()
+    )
+    if stock:
+        return (stock.stock_code, "auto_exact")
+    return (None, "none")
 
 
 def _process_all():
@@ -65,6 +80,18 @@ def _process_all():
                     db.add(NewsCompanyExtractionResult(
                         extraction_id=extraction.id,
                         company_name=name,
+                    ))
+
+                    # 기업명-종목 자동 매칭 결과 저장
+                    stock_code, match_type = _match_company_to_stock(db, name)
+                    db.add(CompanyNameMapping(
+                        news_id=news.id,
+                        extracted_name=name,
+                        matched_stock_code=stock_code,
+                        match_type=match_type,
+                        verified=False,
+                        created_at=datetime.now(timezone.utc),
+                        updated_at=datetime.now(timezone.utc),
                     ))
                 db.commit()
 

@@ -1,5 +1,5 @@
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, String, DateTime, Column
+from sqlalchemy import BigInteger, String, DateTime, Boolean, Column
 
 from database import Base
 
@@ -37,3 +37,25 @@ class NewsEmbedding(Base):
     news_id = Column(BigInteger)
     embedding = Column(Vector(1024))
     created_at = Column(DateTime)
+
+
+class StockMaster(Base):
+    __tablename__ = "stock_master"
+
+    isin_code = Column(String, primary_key=True)
+    stock_code = Column(String)
+    name_kr = Column(String)
+    name_kr_short = Column(String)
+
+
+class CompanyNameMapping(Base):
+    __tablename__ = "company_name_mapping"
+
+    id = Column(BigInteger, primary_key=True)
+    news_id = Column(BigInteger)
+    extracted_name = Column(String)
+    matched_stock_code = Column(String)
+    match_type = Column(String)
+    verified = Column(Boolean)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
