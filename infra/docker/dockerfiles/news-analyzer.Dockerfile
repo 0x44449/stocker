@@ -1,9 +1,12 @@
+# syntax=docker/dockerfile:1
 # Build stage
 FROM python:3.12-slim AS build
 WORKDIR /app
-RUN pip install poetry
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install poetry
 COPY pyproject.toml poetry.lock* ./
-RUN poetry config virtualenvs.create false \
+RUN --mount=type=cache,target=/root/.cache/pypoetry \
+    poetry config virtualenvs.create false \
     && poetry install --only main --no-interaction --no-ansi --no-root
 
 # Runtime stage

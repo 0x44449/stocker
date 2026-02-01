@@ -34,6 +34,7 @@ usage() {
     echo "Services:"
     echo "  api              API 서버만"
     echo "  news-analyzer    News Analyzer 서버만"
+    echo "  admin-web        Admin Web 서버만"
     echo "  postgres         PostgreSQL만"
     echo "  (생략시 api, news-analyzer)"
     echo ""
@@ -68,7 +69,7 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
-        api|news-analyzer|postgres)
+        api|news-analyzer|admin-web|postgres)
             SERVICES+=("$1")
             shift
             ;;
@@ -135,8 +136,9 @@ echo "Services:"
 docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 echo ""
 echo "Endpoints:"
-echo "  - API:      http://localhost:28080/health"
+echo "  - API:           http://localhost:28080/health"
 echo "  - News Analyzer: http://localhost:28000/health"
+echo "  - Admin Web:     http://localhost:23000"
 echo ""
 echo "Logs:"
 echo "  docker-compose -f $DOCKER_DIR/docker-compose.yml logs -f"

@@ -67,5 +67,21 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  admin-web:
+    build:
+      context: ../../apps/admin-web
+      dockerfile: ../../infra/docker/dockerfiles/admin-web.Dockerfile
+    container_name: stocker-admin-web
+    ports:
+      - "${EXTERNAL_ADMIN_WEB_PORT}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+
