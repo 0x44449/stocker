@@ -186,6 +186,15 @@ Stage 4: 요약
 - **결정**: Native SQL 대신 saveAll() 사용
 - **이유**: 소규모 데이터(~950건), 하루 1회, ORM 일관성 유지
 
+### 2026-02-01: 기업명-종목 매칭 전략
+- **배경**: LLM이 추출한 기업명을 종목코드와 연결해야 함
+- **문제**: 유사도/포함관계로 매칭 시 오매칭 위험 (계열사, 유사 이름 등)
+- **결정**: 
+  - 자동 매칭은 정확 일치만 (name_kr, name_kr_short)
+  - 미매칭은 수동으로 처리, 학습 데이터로 수집
+  - 데이터 충분히 쌓이면 LLM 파인튜닝으로 자동화
+- **테이블**: company_name_mapping (news_id, extracted_name, matched_stock_code, match_type, verified)
+
 ---
 
 ## 향후 방향
