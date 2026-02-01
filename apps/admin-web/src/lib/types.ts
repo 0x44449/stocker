@@ -1,4 +1,4 @@
-export type MappingStatus = "unmapped" | "auto_pending" | "partial" | "done";
+export type MappingStatus = "no_mapping" | "unmapped" | "auto_pending" | "partial" | "done";
 
 export interface NewsMappingSummary {
   newsId: number;
