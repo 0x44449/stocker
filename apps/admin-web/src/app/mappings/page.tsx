@@ -158,20 +158,40 @@ export default function MappingsPage() {
         </TableBody>
       </Table>
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-1">
-          {Array.from({ length: totalPages }, (_, i) => i).map((p) => (
-            <Button
-              key={p}
-              variant={page === p ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPage(p)}
-            >
-              {p + 1}
+      {totalPages > 1 && (() => {
+        const GROUP_SIZE = 10;
+        const currentGroup = Math.floor(page / GROUP_SIZE);
+        const groupStart = currentGroup * GROUP_SIZE;
+        const groupEnd = Math.min(groupStart + GROUP_SIZE, totalPages);
+        const last = totalPages - 1;
+
+        return (
+          <div className="flex justify-center items-center gap-1">
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(0)}>
+              ◀◀
             </Button>
-          ))}
-        </div>
-      )}
+            <Button variant="outline" size="sm" disabled={currentGroup === 0} onClick={() => setPage(groupStart - GROUP_SIZE)}>
+              ◀
+            </Button>
+            {Array.from({ length: groupEnd - groupStart }, (_, i) => groupStart + i).map((p) => (
+              <Button
+                key={p}
+                variant={page === p ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPage(p)}
+              >
+                {p + 1}
+              </Button>
+            ))}
+            <Button variant="outline" size="sm" disabled={groupEnd >= totalPages} onClick={() => setPage(groupEnd)}>
+              ▶
+            </Button>
+            <Button variant="outline" size="sm" disabled={page === last} onClick={() => setPage(last)}>
+              ▶▶
+            </Button>
+          </div>
+        );
+      })()}
     </div>
   );
 }
