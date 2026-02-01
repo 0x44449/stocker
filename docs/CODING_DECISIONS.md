@@ -84,19 +84,18 @@ parseLong(record.get("상장주식수"))  // 엄격하게 검증
 
 ## 의존성
 
-### springdoc-openapi 일시 제거
+### springdoc-openapi 3.0.1 사용
 
 **결정일**: 2026-02-01
 
 **배경**:
 - Spring Boot 4.0 + QueryDSL 조합에서 springdoc-openapi 2.8.4 사용 시 빈 생성 실패
 - `queryDslQuerydslPredicateOperationCustomizer` 빈 생성 오류 발생
-- springdoc 3.x 정식 릴리즈(현재 3.0.0-M1 마일스톤)가 필요
+- springdoc 3.0.1이 Spring Boot 4.0 정식 지원
 
 **결정**:
-- springdoc-openapi 의존성 제거
-- API 문서 자동생성 기능 일시 불가
-- springdoc 3.x 정식 릴리즈 후 재도입 예정
+- springdoc-openapi 3.0.1 사용
+- 2.x 버전은 Spring Boot 4.0과 호환 안 됨
 
 **예외**:
 - 없음

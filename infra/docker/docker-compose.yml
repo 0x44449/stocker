@@ -71,6 +71,8 @@ services:
     build:
       context: ../../apps/admin-web
       dockerfile: ../../infra/docker/dockerfiles/admin-web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:28080}
     container_name: stocker-admin-web
     ports:
       - "${EXTERNAL_ADMIN_WEB_PORT}:3000"
