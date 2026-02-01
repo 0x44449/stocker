@@ -63,6 +63,11 @@ Architect가 설계 시 참고하는 문서입니다.
 - 벡터 임베딩 및 유사 뉴스 검색
 - FastAPI로 API 제공
 
+### Admin Web (apps/admin-web)
+- 관리용 프론트엔드
+- Next.js
+- 기업명-종목 수동 매핑, 향후 관리 기능 확장
+
 ### 인프라
 - Docker Compose로 로컬 배포
 - PostgreSQL + pgvector
