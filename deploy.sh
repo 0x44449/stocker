@@ -36,13 +36,13 @@ usage() {
     echo "  news-analyzer    News Analyzer 서버만"
     echo "  admin-web        Admin Web 서버만"
     echo "  postgres         PostgreSQL만"
-    echo "  (생략시 api, news-analyzer)"
+    echo "  (생략시 api, news-analyzer, admin-web)"
     echo ""
     echo "Examples:"
-    echo "  $0                      # api, news-analyzer 배포"
+    echo "  $0                      # api, news-analyzer, admin-web 배포"
     echo "  $0 postgres             # PostgreSQL만 배포"
     echo "  $0 --no-cache api       # API 캐시 없이 재빌드"
-    echo "  $0 --down               # api, news-analyzer 재시작"
+    echo "  $0 --down               # api, news-analyzer, admin-web 재시작"
 }
 
 # 옵션 파싱
@@ -96,9 +96,9 @@ if [ ! -f ".env" ]; then
     cp .env.example .env
 fi
 
-# 서비스 미지정 시 기본값: api, analyzer
+# 서비스 미지정 시 기본값: api, news-analyzer, admin-web
 if [ ${#SERVICES[@]} -eq 0 ]; then
-    SERVICES=("api" "news-analyzer")
+    SERVICES=("api" "news-analyzer" "admin-web")
 fi
 
 # 컨테이너 중지
