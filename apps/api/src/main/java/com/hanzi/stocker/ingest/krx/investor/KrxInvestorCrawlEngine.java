@@ -1,5 +1,7 @@
 package com.hanzi.stocker.ingest.krx.investor;
 
+import com.hanzi.stocker.entities.InvestorFlowDailyRawEntity;
+import com.hanzi.stocker.repositories.InvestorFlowDailyRawRepository;
 import com.hanzi.stocker.ingest.krx.common.KrxFileClient;
 import com.hanzi.stocker.ingest.krx.common.KrxSessionProvider;
 import org.springframework.stereotype.Component;

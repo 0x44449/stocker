@@ -1,4 +1,4 @@
-package com.hanzi.stocker.ingest.krx.stock;
+package com.hanzi.stocker.entities;
 
 import jakarta.persistence.*;
 

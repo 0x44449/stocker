@@ -1,5 +1,7 @@
 package com.hanzi.stocker.ingest.news;
 
+import com.hanzi.stocker.entities.NewsRawEntity;
+import com.hanzi.stocker.repositories.NewsRawRepository;
 import com.hanzi.stocker.ingest.news.provider.NewsProvider;
 import com.hanzi.stocker.ingest.news.provider.ParsedArticle;
 import org.slf4j.Logger;

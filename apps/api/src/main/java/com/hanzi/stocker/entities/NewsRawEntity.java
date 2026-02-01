@@ -1,4 +1,4 @@
-package com.hanzi.stocker.ingest.news;
+package com.hanzi.stocker.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

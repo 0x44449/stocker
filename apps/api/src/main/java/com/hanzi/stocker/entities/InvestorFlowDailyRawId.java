@@ -1,4 +1,4 @@
-package com.hanzi.stocker.ingest.krx.investor;
+package com.hanzi.stocker.entities;
 
 import java.io.Serializable;
 import java.time.LocalDate;

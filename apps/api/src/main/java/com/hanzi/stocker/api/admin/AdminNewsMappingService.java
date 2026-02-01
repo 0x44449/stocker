@@ -2,7 +2,7 @@ package com.hanzi.stocker.api.admin;
 
 import com.hanzi.stocker.entities.CompanyNameMappingEntity;
 import com.hanzi.stocker.entities.QCompanyNameMappingEntity;
-import com.hanzi.stocker.ingest.news.QNewsRawEntity;
+import com.hanzi.stocker.entities.QNewsRawEntity;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.jpa.JPAExpressions;

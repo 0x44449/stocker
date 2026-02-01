@@ -1,5 +1,7 @@
 package com.hanzi.stocker.ingest.krx.master;
 
+import com.hanzi.stocker.entities.StockMasterEntity;
+import com.hanzi.stocker.repositories.StockMasterRepository;
 import com.hanzi.stocker.ingest.krx.common.KrxFileClient;
 import com.hanzi.stocker.ingest.krx.common.KrxSessionProvider;
 import org.apache.commons.csv.CSVFormat;

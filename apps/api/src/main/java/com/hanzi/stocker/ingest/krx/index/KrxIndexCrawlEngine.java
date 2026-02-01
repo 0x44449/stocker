@@ -1,5 +1,7 @@
 package com.hanzi.stocker.ingest.krx.index;
 
+import com.hanzi.stocker.entities.MarketIndexDailyRawEntity;
+import com.hanzi.stocker.repositories.MarketIndexDailyRawRepository;
 import com.hanzi.stocker.ingest.krx.common.KrxFileClient;
 import com.hanzi.stocker.ingest.krx.common.KrxSessionProvider;
 import org.apache.commons.csv.CSVFormat;
