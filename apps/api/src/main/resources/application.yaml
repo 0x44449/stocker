@@ -22,7 +22,6 @@ crawler:
   news:
     user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     delay-seconds: 2
-    raw-text-max-length: 2000
     raw-retention-days: 30
 
 krx:

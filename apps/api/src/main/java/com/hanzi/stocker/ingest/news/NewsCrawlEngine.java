@@ -86,9 +86,6 @@ public class NewsCrawlEngine {
             }
 
             String rawText = article.rawText();
-            if (rawText.length() > config.getRawTextMaxLength()) {
-                rawText = rawText.substring(0, config.getRawTextMaxLength());
-            }
 
             NewsRawEntity entity = new NewsRawEntity();
             entity.setSource(provider.id());

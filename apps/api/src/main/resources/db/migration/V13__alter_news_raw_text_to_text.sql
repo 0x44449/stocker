@@ -1,0 +1,1 @@
+ALTER TABLE news_raw ALTER COLUMN raw_text TYPE TEXT;

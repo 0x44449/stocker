@@ -26,7 +26,7 @@ public class NewsRawEntity {
     @Column(nullable = false, length = 500)
     private String title;
 
-    @Column(name = "raw_text", nullable = false, length = 2000)
+    @Column(name = "raw_text", nullable = false, columnDefinition = "TEXT")
     private String rawText;
 
     @Column(nullable = false, length = 1000, unique = true)

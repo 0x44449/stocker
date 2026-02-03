@@ -9,7 +9,6 @@ public class NewsCrawlConfig {
 
     private String userAgent = "StockerBot/1.0";
     private int delaySeconds = 2;
-    private int rawTextMaxLength = 2000;
     private int rawRetentionDays = 30;
 
     public String getUserAgent() {
@@ -26,14 +25,6 @@ public class NewsCrawlConfig {
 
     public void setDelaySeconds(int delaySeconds) {
         this.delaySeconds = delaySeconds;
-    }
-
-    public int getRawTextMaxLength() {
-        return rawTextMaxLength;
-    }
-
-    public void setRawTextMaxLength(int rawTextMaxLength) {
-        this.rawTextMaxLength = rawTextMaxLength;
     }
 
     public int getRawRetentionDays() {
