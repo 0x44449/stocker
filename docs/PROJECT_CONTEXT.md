@@ -200,6 +200,13 @@ Stage 4: 요약
   - 데이터 충분히 쌓이면 LLM 파인튜닝으로 자동화
 - **테이블**: company_name_mapping (news_id, extracted_name, matched_stock_code, match_type, verified)
 
+### 2026-02-03: 수동 매핑 테이블 재설계
+- **배경**: company_name_mapping이 기능 대비 과도하게 복잡. extracted_name은 extraction_result에 이미 있어서 중복이고, match_type/verified/feedback 등 학습 파이프라인용 컬럼이 현 단계에서 불필요
+- **결정**:
+  - company_name_mapping 제거
+  - `news_stock_manual_mapping` (news_id UNIQUE, stock_codes JSONB, feedback TEXT) - 뉴스 1건 = 1 row로 종목 연결 + 피드백 통합
+- **이유**: LLM 추출(extraction_result)과 사람 검수(manual_mapping)를 분리. 테이블 1개로 단순화, 종목은 JSONB 배열로 저장
+
 ---
 
 ## 향후 방향

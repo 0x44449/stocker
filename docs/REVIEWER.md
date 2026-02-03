@@ -137,11 +137,11 @@ feat: KRX 크롤러 설정 구조 변경
 ```bash
 # 1. WORK.md 아카이브
 mkdir -p docs/WORKS
-mv docs/WORK.md docs/WORKS/yyyymmdd_NNN.md  # 날짜_순번 (예: 20260130_001.md)
+mv docs/WORK.md docs/WORKS/yyyymmdd_NNN_XXX.md  # 날짜_순번_작업요약 (XXX는 20자 이내, 파일명만 보고 작업 내용 유추 가능하게. 예: 20260203_001_manual_mapping_redesign.md)
 
 # 2. 변경 파일 스테이징 (아카이브된 WORK.md 포함)
 git add <files>
-git add docs/WORKS/yyyymmdd_NNN.md
+git add docs/WORKS/yyyymmdd_NNN_XXX.md
 
 # 3. 커밋 (메시지와 함께)
 git commit -m "<message>"
