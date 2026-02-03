@@ -62,4 +62,88 @@ public class InvestorFlowDailyRawEntity {
         this.netValue = netValue;
         this.source = source;
     }
+
+    public LocalDate getTrdDd() {
+        return trdDd;
+    }
+
+    public void setTrdDd(LocalDate trdDd) {
+        this.trdDd = trdDd;
+    }
+
+    public String getMarket() {
+        return market;
+    }
+
+    public void setMarket(String market) {
+        this.market = market;
+    }
+
+    public String getInvestorName() {
+        return investorName;
+    }
+
+    public void setInvestorName(String investorName) {
+        this.investorName = investorName;
+    }
+
+    public Long getSellVolume() {
+        return sellVolume;
+    }
+
+    public void setSellVolume(Long sellVolume) {
+        this.sellVolume = sellVolume;
+    }
+
+    public Long getBuyVolume() {
+        return buyVolume;
+    }
+
+    public void setBuyVolume(Long buyVolume) {
+        this.buyVolume = buyVolume;
+    }
+
+    public Long getNetVolume() {
+        return netVolume;
+    }
+
+    public void setNetVolume(Long netVolume) {
+        this.netVolume = netVolume;
+    }
+
+    public Long getSellValue() {
+        return sellValue;
+    }
+
+    public void setSellValue(Long sellValue) {
+        this.sellValue = sellValue;
+    }
+
+    public Long getBuyValue() {
+        return buyValue;
+    }
+
+    public void setBuyValue(Long buyValue) {
+        this.buyValue = buyValue;
+    }
+
+    public Long getNetValue() {
+        return netValue;
+    }
+
+    public void setNetValue(Long netValue) {
+        this.netValue = netValue;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public OffsetDateTime getIngestedAt() {
+        return ingestedAt;
+    }
 }

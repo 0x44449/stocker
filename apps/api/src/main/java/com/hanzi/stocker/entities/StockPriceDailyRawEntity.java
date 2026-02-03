@@ -82,4 +82,128 @@ public class StockPriceDailyRawEntity {
         this.listedShares = listedShares;
         this.source = source;
     }
+
+    public LocalDate getTrdDd() {
+        return trdDd;
+    }
+
+    public void setTrdDd(LocalDate trdDd) {
+        this.trdDd = trdDd;
+    }
+
+    public String getStockCode() {
+        return stockCode;
+    }
+
+    public void setStockCode(String stockCode) {
+        this.stockCode = stockCode;
+    }
+
+    public String getMarket() {
+        return market;
+    }
+
+    public void setMarket(String market) {
+        this.market = market;
+    }
+
+    public String getStockName() {
+        return stockName;
+    }
+
+    public void setStockName(String stockName) {
+        this.stockName = stockName;
+    }
+
+    public Long getClose() {
+        return close;
+    }
+
+    public void setClose(Long close) {
+        this.close = close;
+    }
+
+    public Long getDiff() {
+        return diff;
+    }
+
+    public void setDiff(Long diff) {
+        this.diff = diff;
+    }
+
+    public BigDecimal getDiffRate() {
+        return diffRate;
+    }
+
+    public void setDiffRate(BigDecimal diffRate) {
+        this.diffRate = diffRate;
+    }
+
+    public Long getOpen() {
+        return open;
+    }
+
+    public void setOpen(Long open) {
+        this.open = open;
+    }
+
+    public Long getHigh() {
+        return high;
+    }
+
+    public void setHigh(Long high) {
+        this.high = high;
+    }
+
+    public Long getLow() {
+        return low;
+    }
+
+    public void setLow(Long low) {
+        this.low = low;
+    }
+
+    public Long getVolume() {
+        return volume;
+    }
+
+    public void setVolume(Long volume) {
+        this.volume = volume;
+    }
+
+    public Long getValue() {
+        return value;
+    }
+
+    public void setValue(Long value) {
+        this.value = value;
+    }
+
+    public Long getMarketCap() {
+        return marketCap;
+    }
+
+    public void setMarketCap(Long marketCap) {
+        this.marketCap = marketCap;
+    }
+
+    public Long getListedShares() {
+        return listedShares;
+    }
+
+    public void setListedShares(Long listedShares) {
+        this.listedShares = listedShares;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public OffsetDateTime getIngestedAt() {
+        return ingestedAt;
+    }
 }

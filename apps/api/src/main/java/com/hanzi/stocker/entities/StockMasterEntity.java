@@ -67,4 +67,104 @@ public class StockMasterEntity {
         this.faceValue = faceValue;
         this.listedShares = listedShares;
     }
+
+    public String getIsinCode() {
+        return isinCode;
+    }
+
+    public void setIsinCode(String isinCode) {
+        this.isinCode = isinCode;
+    }
+
+    public String getStockCode() {
+        return stockCode;
+    }
+
+    public void setStockCode(String stockCode) {
+        this.stockCode = stockCode;
+    }
+
+    public String getNameKr() {
+        return nameKr;
+    }
+
+    public void setNameKr(String nameKr) {
+        this.nameKr = nameKr;
+    }
+
+    public String getNameKrShort() {
+        return nameKrShort;
+    }
+
+    public void setNameKrShort(String nameKrShort) {
+        this.nameKrShort = nameKrShort;
+    }
+
+    public String getNameEn() {
+        return nameEn;
+    }
+
+    public void setNameEn(String nameEn) {
+        this.nameEn = nameEn;
+    }
+
+    public LocalDate getListedDate() {
+        return listedDate;
+    }
+
+    public void setListedDate(LocalDate listedDate) {
+        this.listedDate = listedDate;
+    }
+
+    public String getMarket() {
+        return market;
+    }
+
+    public void setMarket(String market) {
+        this.market = market;
+    }
+
+    public String getSecurityType() {
+        return securityType;
+    }
+
+    public void setSecurityType(String securityType) {
+        this.securityType = securityType;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public String getStockType() {
+        return stockType;
+    }
+
+    public void setStockType(String stockType) {
+        this.stockType = stockType;
+    }
+
+    public Long getFaceValue() {
+        return faceValue;
+    }
+
+    public void setFaceValue(Long faceValue) {
+        this.faceValue = faceValue;
+    }
+
+    public Long getListedShares() {
+        return listedShares;
+    }
+
+    public void setListedShares(Long listedShares) {
+        this.listedShares = listedShares;
+    }
+
+    public OffsetDateTime getIngestedAt() {
+        return ingestedAt;
+    }
 }

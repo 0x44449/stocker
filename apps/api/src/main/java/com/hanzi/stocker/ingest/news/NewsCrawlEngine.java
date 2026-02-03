@@ -146,7 +146,7 @@ public class NewsCrawlEngine {
                 }
             }
         } catch (Exception e) {
-            // sitemap 파싱 실패 시 무시
+            log.warn("sitemap 파싱 실패: url={}, error={}", sitemapUrl, e.getMessage());
         }
 
         return urls;

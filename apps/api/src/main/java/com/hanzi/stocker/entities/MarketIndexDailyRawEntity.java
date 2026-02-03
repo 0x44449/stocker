@@ -70,4 +70,104 @@ public class MarketIndexDailyRawEntity {
         this.marketCap = marketCap;
         this.source = source;
     }
+
+    public LocalDate getTrdDd() {
+        return trdDd;
+    }
+
+    public void setTrdDd(LocalDate trdDd) {
+        this.trdDd = trdDd;
+    }
+
+    public String getIndexName() {
+        return indexName;
+    }
+
+    public void setIndexName(String indexName) {
+        this.indexName = indexName;
+    }
+
+    public BigDecimal getClose() {
+        return close;
+    }
+
+    public void setClose(BigDecimal close) {
+        this.close = close;
+    }
+
+    public BigDecimal getDiff() {
+        return diff;
+    }
+
+    public void setDiff(BigDecimal diff) {
+        this.diff = diff;
+    }
+
+    public BigDecimal getDiffRate() {
+        return diffRate;
+    }
+
+    public void setDiffRate(BigDecimal diffRate) {
+        this.diffRate = diffRate;
+    }
+
+    public BigDecimal getOpen() {
+        return open;
+    }
+
+    public void setOpen(BigDecimal open) {
+        this.open = open;
+    }
+
+    public BigDecimal getHigh() {
+        return high;
+    }
+
+    public void setHigh(BigDecimal high) {
+        this.high = high;
+    }
+
+    public BigDecimal getLow() {
+        return low;
+    }
+
+    public void setLow(BigDecimal low) {
+        this.low = low;
+    }
+
+    public Long getVolume() {
+        return volume;
+    }
+
+    public void setVolume(Long volume) {
+        this.volume = volume;
+    }
+
+    public Long getValue() {
+        return value;
+    }
+
+    public void setValue(Long value) {
+        this.value = value;
+    }
+
+    public Long getMarketCap() {
+        return marketCap;
+    }
+
+    public void setMarketCap(Long marketCap) {
+        this.marketCap = marketCap;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public OffsetDateTime getIngestedAt() {
+        return ingestedAt;
+    }
 }
