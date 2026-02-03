@@ -47,6 +47,8 @@ public class NewsMappingController {
     public NewsMappingService.NewsMappingListResponse list(
             @Parameter(description = "필터 (all: 전체, reviewed: 검수 완료, unreviewed: 미검수)", example = "all")
             @RequestParam(defaultValue = "all") String filter,
+            @Parameter(description = "추출 필터 (all: 전체, extracted: 추출 완료, unextracted: 미추출)", example = "all")
+            @RequestParam(defaultValue = "all") String extraction,
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "10")
@@ -54,7 +56,7 @@ public class NewsMappingController {
             @Parameter(description = "검색어 (제목 검색)", example = "삼성")
             @RequestParam(defaultValue = "") String search
     ) {
-        return service.getList(filter, page, size, search);
+        return service.getList(filter, extraction, page, size, search);
     }
 
     @GetMapping("/{newsId}")

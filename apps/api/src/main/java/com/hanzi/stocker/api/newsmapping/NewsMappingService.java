@@ -101,11 +101,13 @@ public class NewsMappingService {
     // --- 목록 조회 ---
 
     /**
-     * 뉴스 매핑 목록 조회. filter로 검수 상태 필터링, search로 제목 검색.
+     * 뉴스 매핑 목록 조회.
+     * filter로 검수 상태 필터링, extraction으로 추출 상태 필터링, search로 제목 검색.
      */
-    public NewsMappingListResponse getList(String filter, int page, int size, String search) {
+    public NewsMappingListResponse getList(String filter, String extraction, int page, int size, String search) {
         var n = QNewsRawEntity.newsRawEntity;
         var m = QNewsStockManualMappingEntity.newsStockManualMappingEntity;
+        var ext = QNewsCompanyExtractionEntity.newsCompanyExtractionEntity;
 
         var where = new BooleanBuilder();
 
@@ -114,7 +116,7 @@ public class NewsMappingService {
             where.and(n.title.lower().contains(search.trim().toLowerCase()));
         }
 
-        // 필터 조건
+        // 검수 상태 필터
         switch (filter) {
             case "reviewed" -> {
                 // 검수 완료: manual_mapping row 존재
@@ -126,6 +128,23 @@ public class NewsMappingService {
                 // 미검수: manual_mapping row 없음
                 where.and(n.id.notIn(
                         JPAExpressions.select(m.newsId).from(m)
+                ));
+            }
+            // "all": 조건 없음
+        }
+
+        // 추출 상태 필터
+        switch (extraction) {
+            case "extracted" -> {
+                // 추출 완료: extraction row 존재
+                where.and(n.id.in(
+                        JPAExpressions.select(ext.newsId).from(ext)
+                ));
+            }
+            case "unextracted" -> {
+                // 미추출: extraction row 없음
+                where.and(n.id.notIn(
+                        JPAExpressions.select(ext.newsId).from(ext)
                 ));
             }
             // "all": 조건 없음
