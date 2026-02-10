@@ -5,19 +5,22 @@ from datetime import datetime, timezone
 
 from database import SessionLocal
 from extraction.service import extract_companies
-from models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult, StockMaster, CompanyNameMapping
+from models import NewsRaw, NewsExtraction
 
 logger = logging.getLogger(__name__)
 
 _running = False
 _lock = threading.Lock()
 
+LLM_MODEL = "qwen2.5:7b"
+PROMPT_VERSION = "v1"
+
 
 def is_running() -> bool:
     return _running
 
 
-def run_batch():
+def run_batch(llm_model: str = LLM_MODEL, prompt_version: str = PROMPT_VERSION):
     global _running
 
     with _lock:
@@ -26,33 +29,25 @@ def run_batch():
         _running = True
 
     try:
-        _process_all()
+        _process_all(llm_model, prompt_version)
     finally:
         _running = False
 
 
-def _match_company_to_stock(db, extracted_name: str) -> tuple[str | None, str]:
-    """stock_master에서 name_kr 또는 name_kr_short 정확 일치로 종목코드를 찾는다."""
-    stock = (
-        db.query(StockMaster)
-        .filter(
-            (StockMaster.name_kr == extracted_name) |
-            (StockMaster.name_kr_short == extracted_name)
-        )
-        .first()
-    )
-    if stock:
-        return (stock.stock_code, "auto_exact")
-    return (None, "none")
-
-
-def _process_all():
+def _process_all(llm_model: str, prompt_version: str):
     logger.info("배치 시작")
     count = 0
     db = SessionLocal()
     try:
         while True:
-            extracted_news_ids = db.query(NewsCompanyExtraction.news_id)
+            # 동일 모델+프롬프트 조합으로 이미 처리된 뉴스 제외
+            extracted_news_ids = (
+                db.query(NewsExtraction.news_id)
+                .filter(
+                    NewsExtraction.llm_model == llm_model,
+                    NewsExtraction.prompt_version == prompt_version,
+                )
+            )
             news = (
                 db.query(NewsRaw)
                 .filter(NewsRaw.id.notin_(extracted_news_ids))
@@ -66,48 +61,24 @@ def _process_all():
             start_time = time.time()
 
             try:
-                companies = extract_companies(news.raw_text)
-                extraction = NewsCompanyExtraction(
+                keywords, llm_response = extract_companies(news.raw_text)
+                extraction = NewsExtraction(
                     news_id=news.id,
-                    status="done",
+                    keywords=keywords,
+                    llm_response=llm_response,
+                    llm_model=llm_model,
+                    prompt_version=prompt_version,
                     created_at=datetime.now(timezone.utc),
-                    processed_at=datetime.now(timezone.utc),
                 )
                 db.add(extraction)
-                db.flush()
-
-                for name in companies:
-                    db.add(NewsCompanyExtractionResult(
-                        extraction_id=extraction.id,
-                        company_name=name,
-                    ))
-
-                    # 기업명-종목 자동 매칭 결과 저장
-                    stock_code, match_type = _match_company_to_stock(db, name)
-                    db.add(CompanyNameMapping(
-                        news_id=news.id,
-                        extracted_name=name,
-                        matched_stock_code=stock_code,
-                        match_type=match_type,
-                        verified=False,
-                        created_at=datetime.now(timezone.utc),
-                        updated_at=datetime.now(timezone.utc),
-                    ))
                 db.commit()
 
                 elapsed = time.time() - start_time
-                logger.info(f"처리 완료 - news_id={news.id}, 소요시간: {elapsed:.2f}초, 결과: {companies}")
+                logger.info(f"처리 완료 - news_id={news.id}, 소요시간: {elapsed:.2f}초, 결과: {keywords}")
                 count += 1
             except Exception:
                 db.rollback()
                 elapsed = time.time() - start_time
-                extraction = NewsCompanyExtraction(
-                    news_id=news.id,
-                    status="failed",
-                    created_at=datetime.now(timezone.utc),
-                )
-                db.add(extraction)
-                db.commit()
                 logger.exception(f"처리 실패 - news_id={news.id}, 소요시간: {elapsed:.2f}초")
     finally:
         db.close()

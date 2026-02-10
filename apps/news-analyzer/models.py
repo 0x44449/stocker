@@ -1,5 +1,6 @@
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import BigInteger, String, DateTime, Boolean, Column
+from sqlalchemy.dialects.postgresql import JSONB
 
 from database import Base
 
@@ -59,3 +60,15 @@ class CompanyNameMapping(Base):
     verified = Column(Boolean)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
+
+
+class NewsExtraction(Base):
+    __tablename__ = "news_extraction"
+
+    extraction_id = Column(BigInteger, primary_key=True)
+    news_id = Column(BigInteger, nullable=False)
+    keywords = Column(JSONB, nullable=False, server_default='[]')
+    llm_response = Column(String)
+    llm_model = Column(String(100), nullable=False)
+    prompt_version = Column(String(50), nullable=False)
+    created_at = Column(DateTime, nullable=False)

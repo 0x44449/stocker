@@ -27,8 +27,8 @@ PROMPT_TEMPLATE = """아래 텍스트에서 회사/기업 이름만 추출해서
 출력:"""
 
 
-def extract_companies(text: str) -> list[str]:
-    """뉴스 텍스트에서 회사/기업 이름을 추출한다."""
+def extract_companies(text: str) -> tuple[list[str], str]:
+    """뉴스 텍스트에서 회사/기업 이름을 추출한다. (keywords, llm_response) 튜플 반환."""
     text_length = len(text)
     logger.info(f"LLM 호출 시작 - 텍스트 길이: {text_length}")
 
@@ -39,5 +39,6 @@ def extract_companies(text: str) -> list[str]:
     elapsed = time.time() - start_time
     logger.info(f"LLM 호출 완료 - 소요시간: {elapsed:.2f}초, 응답: {raw}")
     if not raw or raw == "없음":
-        return []
-    return [name.strip() for name in raw.split(",") if name.strip()]
+        return [], raw
+    keywords = [name.strip() for name in raw.split(",") if name.strip()]
+    return keywords, raw

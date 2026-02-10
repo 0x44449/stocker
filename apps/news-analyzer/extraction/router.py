@@ -7,15 +7,26 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from extraction.service import extract_companies
-from extraction.job import run_batch, is_running as is_batch_running
-from models import NewsRaw, NewsCompanyExtraction, NewsCompanyExtractionResult
+from extraction.job import run_batch, is_running as is_batch_running, LLM_MODEL, PROMPT_VERSION
+from models import NewsRaw, NewsExtraction
 
 router = APIRouter(prefix="/extraction")
 
 
 @router.get("/pending")
-def pending_news(limit: int = Query(default=10), db: Session = Depends(get_db)):
-    extracted_news_ids = db.query(NewsCompanyExtraction.news_id)
+def pending_news(
+    llm_model: str = Query(),
+    prompt_version: str = Query(),
+    limit: int = Query(default=10),
+    db: Session = Depends(get_db),
+):
+    extracted_news_ids = (
+        db.query(NewsExtraction.news_id)
+        .filter(
+            NewsExtraction.llm_model == llm_model,
+            NewsExtraction.prompt_version == prompt_version,
+        )
+    )
     rows = (
         db.query(NewsRaw.id, NewsRaw.title)
         .filter(NewsRaw.id.notin_(extracted_news_ids))
@@ -27,39 +38,39 @@ def pending_news(limit: int = Query(default=10), db: Session = Depends(get_db)):
 
 class ExtractRequest(BaseModel):
     news_id: int
+    llm_model: str = LLM_MODEL
+    prompt_version: str = PROMPT_VERSION
 
 
 @router.post("/run")
 def extract(req: ExtractRequest, db: Session = Depends(get_db)):
     news = db.query(NewsRaw).filter(NewsRaw.id == req.news_id).one()
 
-    companies = extract_companies(news.raw_text)
+    keywords, llm_response = extract_companies(news.raw_text)
 
-    extraction = NewsCompanyExtraction(
+    extraction = NewsExtraction(
         news_id=news.id,
-        status="done",
+        keywords=keywords,
+        llm_response=llm_response,
+        llm_model=req.llm_model,
+        prompt_version=req.prompt_version,
         created_at=datetime.now(timezone.utc),
-        processed_at=datetime.now(timezone.utc),
     )
     db.add(extraction)
-    db.flush()
-
-    for name in companies:
-        result = NewsCompanyExtractionResult(
-            extraction_id=extraction.id,
-            company_name=name,
-        )
-        db.add(result)
-
     db.commit()
-    return {"news_id": news.id, "companies": companies}
+    return {"news_id": news.id, "keywords": keywords}
+
+
+class BatchStartRequest(BaseModel):
+    llm_model: str = LLM_MODEL
+    prompt_version: str = PROMPT_VERSION
 
 
 @router.post("/job/start")
-def batch_start():
+def batch_start(req: BatchStartRequest = BatchStartRequest()):
     if is_batch_running():
         return {"status": "already_running"}
-    threading.Thread(target=run_batch, daemon=True).start()
+    threading.Thread(target=run_batch, args=(req.llm_model, req.prompt_version), daemon=True).start()
     return {"status": "started"}
 
 
