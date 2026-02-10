@@ -1,5 +1,6 @@
 package com.hanzi.stocker.api.newsmapping;
 
+import com.hanzi.stocker.entities.StringListJsonConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
