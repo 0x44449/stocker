@@ -1,11 +1,8 @@
 package com.hanzi.stocker.api.headline;
 
-import com.hanzi.stocker.entities.NewsCompanyExtractionEntity;
 import com.hanzi.stocker.entities.NewsRawEntity;
-import com.hanzi.stocker.entities.QNewsCompanyExtractionEntity;
+import com.hanzi.stocker.entities.QNewsExtractionEntity;
 import com.hanzi.stocker.entities.QNewsRawEntity;
-import com.hanzi.stocker.repositories.NewsCompanyExtractionResultRepository;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.stereotype.Service;
 
@@ -26,12 +23,9 @@ import java.util.stream.Collectors;
 public class HeadlineService {
 
     private final JPAQueryFactory queryFactory;
-    private final NewsCompanyExtractionResultRepository extractionResultRepository;
 
-    public HeadlineService(JPAQueryFactory queryFactory,
-                           NewsCompanyExtractionResultRepository extractionResultRepository) {
+    public HeadlineService(JPAQueryFactory queryFactory) {
         this.queryFactory = queryFactory;
-        this.extractionResultRepository = extractionResultRepository;
     }
 
     // --- DTO ---
@@ -48,9 +42,8 @@ public class HeadlineService {
      */
     public HeadlineResponse getHeadlines(LocalDate date, int threshold) {
         var n = QNewsRawEntity.newsRawEntity;
-        var ext = QNewsCompanyExtractionEntity.newsCompanyExtractionEntity;
+        var ext = QNewsExtractionEntity.newsExtractionEntity;
 
-        // published_at이 해당 날짜인 범위: [00:00:00, 다음날 00:00:00)
         var startOfDay = date.atStartOfDay();
         var startOfNextDay = date.plusDays(1).atStartOfDay();
 
@@ -61,17 +54,9 @@ public class HeadlineService {
                 .fetchOne();
         long totalNewsCount = totalCount != null ? totalCount : 0;
 
-        // 해당 날짜 + 추출 완료(COMPLETED)인 뉴스 조회
+        // 해당 날짜의 뉴스 조회
         var newsEntities = queryFactory.selectFrom(n)
-                .where(
-                        n.publishedAt.goe(startOfDay),
-                        n.publishedAt.lt(startOfNextDay),
-                        n.id.in(
-                                JPAExpressions.select(ext.newsId)
-                                        .from(ext)
-                                        .where(ext.status.eq("COMPLETED"))
-                        )
-                )
+                .where(n.publishedAt.goe(startOfDay), n.publishedAt.lt(startOfNextDay))
                 .fetch();
 
         if (newsEntities.isEmpty()) {
@@ -82,26 +67,25 @@ public class HeadlineService {
                 .collect(Collectors.toMap(NewsRawEntity::getId, e -> e));
         var newsIds = newsMap.keySet().stream().toList();
 
-        // extraction_id → news_id 매핑
+        // news_extraction에서 해당 뉴스들의 추출 결과 조회 (llm_model, prompt_version 하드코딩)
         var extractions = queryFactory.selectFrom(ext)
-                .where(ext.newsId.in(newsIds), ext.status.eq("COMPLETED"))
+                .where(
+                        ext.newsId.in(newsIds),
+                        ext.llmModel.eq("qwen2.5:7b"),
+                        ext.promptVersion.eq("v1")
+                )
                 .fetch();
 
-        var extractionIdToNewsId = extractions.stream()
-                .collect(Collectors.toMap(
-                        NewsCompanyExtractionEntity::getId,
-                        NewsCompanyExtractionEntity::getNewsId
-                ));
+        if (extractions.isEmpty()) {
+            return new HeadlineResponse(date, threshold, totalNewsCount, List.of());
+        }
 
-        // extraction_result 조회
-        var extractionIds = extractionIdToNewsId.keySet().stream().toList();
-        var results = extractionResultRepository.findByExtractionIdIn(extractionIds);
-
-        // company_name별 뉴스 ID 그룹핑 (같은 뉴스에서 같은 기업명 중복 제거)
+        // keywords를 풀어서 기업명별 뉴스 ID 그룹핑 (같은 뉴스에서 같은 기업명 중복 제거)
         Map<String, Set<Long>> companyToNewsIds = new HashMap<>();
-        for (var result : results) {
-            var newsId = extractionIdToNewsId.get(result.getExtractionId());
-            companyToNewsIds.computeIfAbsent(result.getCompanyName(), k -> new HashSet<>()).add(newsId);
+        for (var extraction : extractions) {
+            for (var keyword : extraction.getKeywords()) {
+                companyToNewsIds.computeIfAbsent(keyword, k -> new HashSet<>()).add(extraction.getNewsId());
+            }
         }
 
         // threshold 이상인 종목만 선정, count 내림차순 정렬
