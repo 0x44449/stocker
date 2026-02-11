@@ -45,11 +45,11 @@ public class HotStockService {
         var startOfDay = today.atStartOfDay();
         var startOfNextDay = today.plusDays(1).atStartOfDay();
 
-        // 1. news_extraction에서 created_at이 오늘인 것 조회
+        // 1. news_extraction에서 published_at이 오늘인 것 조회
         var extractions = queryFactory.selectFrom(ext)
                 .where(
-                        ext.createdAt.goe(startOfDay),
-                        ext.createdAt.lt(startOfNextDay),
+                        ext.publishedAt.goe(startOfDay),
+                        ext.publishedAt.lt(startOfNextDay),
                         ext.llmModel.eq("qwen2.5:7b"),
                         ext.promptVersion.eq("v1")
                 )

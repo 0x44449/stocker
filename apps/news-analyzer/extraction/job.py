@@ -68,6 +68,7 @@ def _process_all(llm_model: str, prompt_version: str):
                     llm_response=llm_response,
                     llm_model=llm_model,
                     prompt_version=prompt_version,
+                    published_at=news.published_at,
                     created_at=datetime.now(timezone.utc),
                 )
                 db.add(extraction)

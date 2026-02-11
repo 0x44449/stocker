@@ -10,6 +10,7 @@ class NewsRaw(Base):
 
     id = Column(BigInteger, primary_key=True)
     title = Column(String)
+    published_at = Column(DateTime)
     raw_text = Column(String)
 
 
@@ -71,4 +72,5 @@ class NewsExtraction(Base):
     llm_response = Column(String)
     llm_model = Column(String(100), nullable=False)
     prompt_version = Column(String(50), nullable=False)
+    published_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, nullable=False)

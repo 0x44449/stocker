@@ -36,6 +36,9 @@ public class NewsExtractionEntity {
     @Column(name = "prompt_version", nullable = false, length = 50)
     private String promptVersion;
 
+    @Column(name = "published_at", nullable = false)
+    private LocalDateTime publishedAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -61,6 +64,10 @@ public class NewsExtractionEntity {
 
     public String getPromptVersion() {
         return promptVersion;
+    }
+
+    public LocalDateTime getPublishedAt() {
+        return publishedAt;
     }
 
     public LocalDateTime getCreatedAt() {
