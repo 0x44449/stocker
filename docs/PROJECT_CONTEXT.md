@@ -296,6 +296,26 @@ Layer 2 (매칭 실행) ─── 매핑 결과 축적 ───┐
 - Weak Supervision(O) → 파인튜닝(L) 학습 데이터 확보
 - 파인튜닝(L) → Layer 2 LLM 정확도 전체 향상
 
+### 2026-02-10: news_extraction 테이블 재설계
+- **배경**: 기존 `news_company_extraction` + `news_company_extraction_result` 2테이블 구조가 불필요하게 복잡하고, extraction_result에서 데이터를 뽑으려면 extraction을 거쳐야 하는 불필요한 JOIN 발생. LLM 결과도 신뢰할 수 없는 상태.
+- **결정**:
+  - 새 `news_extraction` 테이블 1개로 통합
+  - keywords는 JSONB 배열로 저장 (`["삼성전자", "SK하이닉스"]`)
+  - llm_model, prompt_version 저장하여 모델/프롬프트별 추출 이력 관리
+  - llm_response에 LLM 원본 응답 저장 (디버깅용)
+  - news_id UNIQUE 아님 — 같은 뉴스를 다른 모델로 여러 번 추출 가능
+- **이유**: 파이프라인 각 모듈이 자기 결과를 독립적으로 저장하는 구조. extraction은 키워드 추출만 담당, 종목 매칭은 다음 모듈의 책임
+- **기존 테이블**: `news_company_extraction`, `news_company_extraction_result`는 삭제하지 않고 유지 (HeadlineService 등에서 참조 중)
+
+### 2026-02-10: 헤드라인 API를 news_extraction 기반으로 변경
+- **배경**: HeadlineService가 기존 extraction 테이블 기반이었으나 새 테이블로 전환 필요
+- **결정**:
+  - news_extraction의 keywords JSONB를 Java에서 풀어서 카운팅 (JSONB 집계는 native SQL 필요하므로)
+  - stock_master의 name_kr, name_kr_short와 매칭되는 키워드만 카운팅
+  - DB에서 날짜/모델/프롬프트 필터링, Java에서 매칭/집계 (CODING_DECISIONS 일관)
+  - llm_model, prompt_version은 하드코딩 (탐색 단계)
+- **이유**: QueryDSL로 JSONB 배열 처리 불가, 나중에 스케줄러 배치로 전환 시 DB Function 등으로 최적화 가능
+
 ## 향후 방향
 
 ### Stage 1 완성
