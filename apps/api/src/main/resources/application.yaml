@@ -28,6 +28,9 @@ krx:
   username: ${KRX_USERNAME:}
   password: ${KRX_PASSWORD:}
 
+analyzer:
+  url: ${ANALYZER_URL:http://localhost:8000}
+
 logging:
   level:
     CRAWL: INFO

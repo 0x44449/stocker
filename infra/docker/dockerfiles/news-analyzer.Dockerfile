@@ -27,6 +27,7 @@ COPY main.py config.py database.py models.py ./
 COPY extraction extraction
 COPY embedding embedding
 COPY search search
+COPY clustering clustering
 RUN mkdir -p /app/.cache && chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8000
