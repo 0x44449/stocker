@@ -23,7 +23,7 @@ public class NewsCrawlScheduler {
         this.crawlLock = crawlLock;
     }
 
-    @Scheduled(cron = "0 0 9,12,15,18 * * *")
+    @Scheduled(cron = "0 0 7,9,12,15,18 * * *")
     public void run() {
         var providers = providerRegistry.getAll();
         log.info("뉴스 크롤링 스케줄 시작: provider={}개", providers.size());

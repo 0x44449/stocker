@@ -17,8 +17,8 @@ from search.router import router as search_router
 from clustering.router import router as clustering_router
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(run_batch, "cron", hour="9,21", id="batch_extract")
-scheduler.add_job(run_embedding_batch, "cron", hour="0,12", id="batch_embedding")
+scheduler.add_job(run_batch, "cron", hour="8,10,13,16,19", id="batch_extract")
+scheduler.add_job(run_embedding_batch, "cron", hour="9,11,14,17,20", id="batch_embedding")
 
 
 @asynccontextmanager
