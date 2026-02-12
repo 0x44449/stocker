@@ -1,10 +1,12 @@
 package com.hanzi.stocker.api.feed;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,12 +24,28 @@ public class StockTopicsService {
                 .build();
     }
 
-    public Map getStockTopics(String keyword, int days, double eps) {
+    // --- DTO ---
+
+    public record ArticleDto(@JsonProperty("news_id") long newsId, String title) {}
+
+    public record TopicDto(String title, int count, List<ArticleDto> articles) {}
+
+    public record ClusterDto(int count, List<ArticleDto> articles) {}
+
+    public record StockTopicsDto(
+            String keyword,
+            @JsonProperty("total_count") int totalCount,
+            TopicDto topic,
+            List<ClusterDto> clusters,
+            List<ArticleDto> noise
+    ) {}
+
+    public StockTopicsDto getStockTopics(String keyword, int days, double eps) {
         return restClient.post()
                 .uri("/clustering/similar-news")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("keyword", keyword, "days", days, "eps", eps))
                 .retrieve()
-                .body(Map.class);
+                .body(StockTopicsDto.class);
     }
 }
