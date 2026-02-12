@@ -42,7 +42,7 @@ public class HotStockService {
         var ext = QNewsExtractionEntity.newsExtractionEntity;
 
         var today = LocalDate.now();
-        var startOfDay = today.atStartOfDay();
+        var startOfDay = today.minusDays(1).atStartOfDay();
         var startOfNextDay = today.plusDays(1).atStartOfDay();
 
         // 1. news_extraction에서 published_at이 오늘인 것 조회
