@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 _running = False
 _lock = threading.Lock()
 
-LLM_MODEL = "qwen2.5:7b"
+LLM_MODEL = "exaone3.5:7.8b"
 PROMPT_VERSION = "v1"
 
 

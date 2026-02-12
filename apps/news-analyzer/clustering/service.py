@@ -25,7 +25,7 @@ TOPIC_PROMPT = """아래 뉴스 제목들을 대표하는 뉴스 헤드라인을
 
 def _summarize_topic(titles: list[str]) -> str:
     """기사 제목 목록에서 공통 주제를 한 줄로 요약"""
-    llm = OllamaLLM(model="qwen2.5:7b", base_url=OLLAMA_BASE_URL)
+    llm = OllamaLLM(model="exaone3.5:7.8b", base_url=OLLAMA_BASE_URL)
     prompt = TOPIC_PROMPT.format(titles="\n".join(f"- {t}" for t in titles))
     result = llm.invoke(prompt).strip()
     logger.info(f"토픽 요약 완료 - 제목 수: {len(titles)}, 결과: {result}")
