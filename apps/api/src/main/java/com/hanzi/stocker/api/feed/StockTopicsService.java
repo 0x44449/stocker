@@ -28,7 +28,7 @@ public class StockTopicsService {
 
     public record ArticleDto(@JsonProperty("news_id") long newsId, String title) {}
 
-    public record TopicDto(String title, int count, List<ArticleDto> articles) {}
+    public record TopicDto(String title, String summary, int count, List<ArticleDto> articles) {}
 
     public record ClusterDto(int count, List<ArticleDto> articles) {}
 

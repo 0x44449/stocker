@@ -22,13 +22,32 @@ TOPIC_PROMPT = """아래 뉴스 제목들을 대표하는 뉴스 헤드라인을
 
 헤드라인:"""
 
+SUMMARY_PROMPT = """아래 뉴스 본문들을 읽고 핵심 내용을 2~3줄로 요약해줘.
+다른 설명 없이 요약만 출력해.
+
+{bodies}
+
+요약:"""
+
 
 def _summarize_topic(titles: list[str]) -> str:
-    """기사 제목 목록에서 공통 주제를 한 줄로 요약"""
+    """기사 제목 목록에서 대표 헤드라인 생성"""
     llm = OllamaLLM(model="exaone3.5:7.8b", base_url=OLLAMA_BASE_URL)
     prompt = TOPIC_PROMPT.format(titles="\n".join(f"- {t}" for t in titles))
     result = llm.invoke(prompt).strip()
     logger.info(f"토픽 요약 완료 - 제목 수: {len(titles)}, 결과: {result}")
+    return result
+
+
+def _summarize_body(texts: list[str]) -> str:
+    """기사 본문들을 2~3줄로 요약"""
+    llm = OllamaLLM(model="exaone3.5:7.8b", base_url=OLLAMA_BASE_URL)
+    # 상위 5개, 각 300자 제한
+    truncated = [t[:300] for t in texts[:5]]
+    bodies = "\n\n".join(f"[기사 {i+1}]\n{t}" for i, t in enumerate(truncated))
+    prompt = SUMMARY_PROMPT.format(bodies=bodies)
+    result = llm.invoke(prompt).strip()
+    logger.info(f"본문 요약 완료 - 기사 수: {len(truncated)}, 결과: {result}")
     return result
 
 
@@ -110,14 +129,25 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
 
     total_count = len(valid_news_ids)
 
-    # 6. 가장 큰 클러스터에 LLM 요약 제목 생성
+    # 6. 가장 큰 클러스터에 LLM 요약 제목 + 본문 요약 생성
     topic = None
     remaining_clusters = sorted_clusters
     if sorted_clusters:
         top = sorted_clusters[0]
         topic_titles = [a["title"] for a in top["articles"]]
+
+        # topic 클러스터 상위 5개 기사의 본문 조회
+        topic_news_ids = [a["news_id"] for a in top["articles"][:5]]
+        raw_texts = (
+            db.query(NewsRaw.id, NewsRaw.raw_text)
+            .filter(NewsRaw.id.in_(topic_news_ids))
+            .all()
+        )
+        body_list = [row.raw_text for row in raw_texts if row.raw_text]
+
         topic = {
             "title": _summarize_topic(topic_titles),
+            "summary": _summarize_body(body_list) if body_list else None,
             "count": top["count"],
             "articles": top["articles"],
         }
