@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from config import OLLAMA_BASE_URL
 from sqlalchemy import or_
 
-from models import NewsExtraction, NewsEmbedding, NewsRaw, StockAlias, SubsidiaryMapping
+from models import NewsExtraction, NewsEmbedding, NewsRaw, StockAlias, SubsidiaryMapping, StockMaster, StockPriceDailyRaw
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,58 @@ def _summarize_body(texts: list[str]) -> str:
     return result
 
 
+def _get_latest_price(db: Session, stock_code: str) -> dict | None:
+    """stock_code의 최근 거래일 주가 조회"""
+    row = (
+        db.query(StockPriceDailyRaw)
+        .filter(StockPriceDailyRaw.stock_code == stock_code)
+        .order_by(StockPriceDailyRaw.trd_dd.desc())
+        .first()
+    )
+    if not row:
+        return None
+    return {
+        "stock_code": row.stock_code,
+        "date": str(row.trd_dd),
+        "close": int(row.close) if row.close else None,
+        "diff_rate": float(row.diff_rate) if row.diff_rate else None,
+    }
+
+
+def _find_related_stock(db: Session, rows, main_stock_code: str, search_keywords: list[str]) -> dict | None:
+    """클러스터 내 뉴스 keywords에서 주체 종목 외 가장 많이 언급된 종목 1건"""
+    # alias/subsidiary → stock_code 매핑
+    alias_map = {r.alias: r.stock_code for r in db.query(StockAlias).all()}
+    sub_map = {r.subsidiary_name: r.stock_code for r in db.query(SubsidiaryMapping).all()}
+    # stock name → stock_code 매핑
+    name_map = {r.name_kr_short: r.stock_code for r in db.query(StockMaster.name_kr_short, StockMaster.stock_code).all()}
+
+    counts = {}
+    search_set = set(search_keywords)
+    for row in rows:
+        for kw in row.keywords or []:
+            if kw in search_set:
+                continue
+            code = name_map.get(kw) or alias_map.get(kw) or sub_map.get(kw)
+            if code and code != main_stock_code:
+                counts[code] = counts.get(code, 0) + 1
+
+    if not counts:
+        return None
+
+    top_code = max(counts, key=counts.get)
+    price = _get_latest_price(db, top_code)
+    stock_name_row = db.query(StockMaster.name_kr_short).filter(StockMaster.stock_code == top_code).first()
+
+    return {
+        "stock_name": stock_name_row.name_kr_short if stock_name_row else None,
+        "stock_code": top_code,
+        "mention_count": counts[top_code],
+        "close": price["close"] if price else None,
+        "diff_rate": price["diff_rate"] if price else None,
+    }
+
+
 def cluster_news(db: Session, keyword: str, days: int, eps: float):
     """keyword 관련 뉴스를 DBSCAN으로 클러스터링"""
     from datetime import date, datetime, timedelta
@@ -76,9 +128,12 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
     # 종목명 + alias + 자회사명을 합친 검색 키워드 목록
     search_keywords = [keyword] + [row.alias for row in aliases] + [row.subsidiary_name for row in subsidiaries]
 
+    # keyword → stock_code 조회
+    stock = db.query(StockMaster.stock_code).filter(StockMaster.name_kr_short == keyword).first()
+
     # keyword 관련 뉴스의 embedding, title을 한 번에 조회 (JOIN으로 embedding 없는 뉴스는 자동 제외)
     rows = (
-        db.query(NewsExtraction.news_id, NewsEmbedding.embedding, NewsRaw.title)
+        db.query(NewsExtraction.news_id, NewsEmbedding.embedding, NewsRaw.title, NewsExtraction.keywords)
         .join(NewsEmbedding, NewsEmbedding.news_id == NewsExtraction.news_id)
         .join(NewsRaw, NewsRaw.id == NewsExtraction.news_id)
         .filter(
@@ -92,7 +147,7 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
     logger.info(f"뉴스 조회 완료 - {len(rows)}건")
 
     if not rows:
-        return {"keyword": keyword, "total_count": 0, "topic": None, "clusters": [], "noise": []}
+        return {"keyword": keyword, "total_count": 0, "stock_price": _get_latest_price(db, stock.stock_code) if stock else None, "related_stock": None, "topic": None, "clusters": [], "noise": []}
 
     valid_news_ids = []
     vectors = []
@@ -103,7 +158,7 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
         title_map[row.news_id] = row.title
 
     if not vectors:
-        return {"keyword": keyword, "total_count": 0, "topic": None, "clusters": [], "noise": []}
+        return {"keyword": keyword, "total_count": 0, "stock_price": _get_latest_price(db, stock.stock_code) if stock else None, "related_stock": None, "topic": None, "clusters": [], "noise": []}
 
     # DBSCAN 클러스터링 (cosine 거리 기반, label=-1은 노이즈)
     matrix = np.stack(vectors)
@@ -162,6 +217,8 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
     return {
         "keyword": keyword,
         "total_count": total_count,
+        "stock_price": _get_latest_price(db, stock.stock_code) if stock else None,
+        "related_stock": _find_related_stock(db, rows, stock.stock_code, search_keywords) if stock and rows else None,
         "topic": topic,
         "clusters": remaining_clusters,
         "noise": noise_articles,

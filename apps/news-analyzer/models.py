@@ -1,5 +1,5 @@
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, String, DateTime, Boolean, Column
+from sqlalchemy import BigInteger, String, DateTime, Boolean, Column, Date, Numeric
 from sqlalchemy.dialects.postgresql import JSONB
 
 from database import Base
@@ -79,6 +79,16 @@ class SubsidiaryMapping(Base):
     stock_code = Column(String, nullable=False)
     stock_name = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False)
+
+
+class StockPriceDailyRaw(Base):
+    __tablename__ = "stock_price_daily_raw"
+
+    trd_dd = Column(Date, primary_key=True)
+    stock_code = Column(String, primary_key=True)
+    stock_name = Column(String, nullable=False)
+    close = Column(BigInteger)
+    diff_rate = Column(Numeric(10, 2))
 
 
 class NewsExtraction(Base):

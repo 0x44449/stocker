@@ -28,6 +28,21 @@ public class StockTopicsService {
 
     public record ArticleDto(@JsonProperty("news_id") long newsId, String title) {}
 
+    public record StockPriceDto(
+            @JsonProperty("stock_code") String stockCode,
+            String date,
+            Long close,
+            @JsonProperty("diff_rate") Double diffRate
+    ) {}
+
+    public record RelatedStockDto(
+            @JsonProperty("stock_name") String stockName,
+            @JsonProperty("stock_code") String stockCode,
+            @JsonProperty("mention_count") int mentionCount,
+            Long close,
+            @JsonProperty("diff_rate") Double diffRate
+    ) {}
+
     public record TopicDto(String title, String summary, int count, List<ArticleDto> articles) {}
 
     public record ClusterDto(int count, List<ArticleDto> articles) {}
@@ -35,6 +50,8 @@ public class StockTopicsService {
     public record StockTopicsDto(
             String keyword,
             @JsonProperty("total_count") int totalCount,
+            @JsonProperty("stock_price") StockPriceDto stockPrice,
+            @JsonProperty("related_stock") RelatedStockDto relatedStock,
             TopicDto topic,
             List<ClusterDto> clusters,
             List<ArticleDto> noise
