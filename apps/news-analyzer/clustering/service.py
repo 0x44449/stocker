@@ -6,7 +6,9 @@ from sklearn.cluster import DBSCAN
 from sqlalchemy.orm import Session
 
 from config import OLLAMA_BASE_URL
-from models import NewsExtraction, NewsEmbedding, NewsRaw
+from sqlalchemy import or_
+
+from models import NewsExtraction, NewsEmbedding, NewsRaw, StockAlias
 
 logger = logging.getLogger(__name__)
 
@@ -60,21 +62,22 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
     # days=2면 오늘+어제 → 어제 0시부터
     start = datetime.combine(date.today() - timedelta(days=days - 1), datetime.min.time())
 
+    # keyword(종목명)에 해당하는 alias 목록 조회
+    aliases = (
+        db.query(StockAlias.alias)
+        .filter(StockAlias.stock_name == keyword)
+        .all()
+    )
+    # 종목명 자체 + alias들을 합친 검색 키워드 목록
+    search_keywords = [keyword] + [row.alias for row in aliases]
+
     # keyword 관련 뉴스의 embedding, title을 한 번에 조회 (JOIN으로 embedding 없는 뉴스는 자동 제외)
-    # SELECT e.news_id, emb.embedding, r.title
-    # FROM news_extraction e
-    # JOIN news_embedding emb ON emb.news_id = e.news_id
-    # JOIN news_raw r ON r.id = e.news_id
-    # WHERE e.keywords @> '["keyword"]'
-    #   AND e.published_at >= :start
-    #   AND e.llm_model = 'exaone3.5:7.8b'
-    #   AND e.prompt_version = 'v1'
     rows = (
         db.query(NewsExtraction.news_id, NewsEmbedding.embedding, NewsRaw.title)
         .join(NewsEmbedding, NewsEmbedding.news_id == NewsExtraction.news_id)
         .join(NewsRaw, NewsRaw.id == NewsExtraction.news_id)
         .filter(
-            NewsExtraction.keywords.op("@>")(f'["{keyword}"]'),
+            or_(*[NewsExtraction.keywords.op("@>")(f'["{kw}"]') for kw in search_keywords]),
             NewsExtraction.published_at >= start,
             NewsExtraction.llm_model == LLM_MODEL,
             NewsExtraction.prompt_version == PROMPT_VERSION,

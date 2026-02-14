@@ -63,6 +63,15 @@ class CompanyNameMapping(Base):
     updated_at = Column(DateTime)
 
 
+class StockAlias(Base):
+    __tablename__ = "stock_alias"
+
+    alias = Column(String, primary_key=True)
+    stock_code = Column(String, nullable=False)
+    stock_name = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+
+
 class NewsExtraction(Base):
     __tablename__ = "news_extraction"
 
