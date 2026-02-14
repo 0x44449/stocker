@@ -13,6 +13,7 @@ from extraction.job import run_batch
 from extraction.router import router as extraction_router
 from embedding.job import run_embedding_batch
 from embedding.router import router as embedding_router
+from clustering.job import run_clustering_batch
 from search.router import router as search_router
 from clustering.router import router as clustering_router
 from anomaly.router import router as anomaly_router
@@ -20,6 +21,7 @@ from anomaly.router import router as anomaly_router
 scheduler = BackgroundScheduler()
 scheduler.add_job(run_batch, "cron", hour="8,10,13,16,19", id="batch_extract")
 scheduler.add_job(run_embedding_batch, "cron", hour="9,11,14,17,20", id="batch_embedding")
+scheduler.add_job(run_clustering_batch, "interval", hours=1, id="batch_clustering")
 
 
 @asynccontextmanager

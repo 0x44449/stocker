@@ -1,27 +1,26 @@
 package com.hanzi.stocker.api.feed;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hanzi.stocker.entities.StockClusterResultEntity;
+import com.hanzi.stocker.repositories.StockClusterResultRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 종목별 뉴스 클러스터링 서비스.
- * Python analyzer의 클러스터링 API를 호출하여 결과를 그대로 반환한다.
+ * DB에 저장된 클러스터링 결과를 조회하여 반환한다.
  */
 @Service
 public class StockTopicsService {
 
-    private final RestClient restClient;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final StockClusterResultRepository repository;
 
-    public StockTopicsService(@Value("${analyzer.url}") String analyzerUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(analyzerUrl)
-                .build();
+    public StockTopicsService(StockClusterResultRepository repository) {
+        this.repository = repository;
     }
 
     // --- DTO ---
@@ -57,12 +56,16 @@ public class StockTopicsService {
             List<ArticleDto> noise
     ) {}
 
-    public StockTopicsDto getStockTopics(String keyword, int days, double eps) {
-        return restClient.post()
-                .uri("/clustering/similar-news")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("keyword", keyword, "days", days, "eps", eps))
-                .retrieve()
-                .body(StockTopicsDto.class);
+    public StockTopicsDto getStockTopics(String keyword) {
+        StockClusterResultEntity entity = repository.findFirstByStockNameOrderByClusteredAtDesc(keyword);
+        if (entity == null) {
+            return new StockTopicsDto(keyword, 0, null, null, null, List.of(), List.of());
+        }
+
+        try {
+            return objectMapper.readValue(entity.getResult(), StockTopicsDto.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("클러스터링 결과 역직렬화 실패", e);
+        }
     }
 }

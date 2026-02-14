@@ -1,7 +1,10 @@
+import threading
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from clustering.job import run_clustering_batch, is_running as is_clustering_running
 from clustering.service import cluster_news
 from database import get_db
 
@@ -54,6 +57,19 @@ class ClusterResponse(BaseModel):
     topic: TopicDto | None
     clusters: list[ClusterDto]
     noise: list[ArticleDto]
+
+
+@router.post("/job/start")
+def clustering_job_start():
+    if is_clustering_running():
+        return {"status": "already_running"}
+    threading.Thread(target=run_clustering_batch, daemon=True).start()
+    return {"status": "started"}
+
+
+@router.get("/job/status")
+def clustering_job_status():
+    return {"running": is_clustering_running()}
 
 
 @router.post("/similar-news", response_model=ClusterResponse)

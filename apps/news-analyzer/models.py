@@ -1,5 +1,5 @@
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, String, DateTime, Boolean, Column, Date, Numeric
+from sqlalchemy import BigInteger, String, DateTime, Boolean, Column, Date, Numeric, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 
 from database import Base
@@ -89,6 +89,17 @@ class StockPriceDailyRaw(Base):
     stock_name = Column(String, nullable=False)
     close = Column(BigInteger)
     diff_rate = Column(Numeric(10, 2))
+
+
+class StockClusterResult(Base):
+    __tablename__ = "stock_cluster_result"
+
+    stock_code = Column(String, primary_key=True)
+    clustered_at = Column(DateTime, primary_key=True)
+    stock_name = Column(String, nullable=False)
+    total_count = Column(Integer, nullable=False)
+    input_hash = Column(String, nullable=False)
+    result = Column(JSONB, nullable=False)
 
 
 class NewsExtraction(Base):
