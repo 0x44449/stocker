@@ -50,7 +50,7 @@ public class HotStockService {
                 .where(
                         ext.publishedAt.goe(startOfDay),
                         ext.publishedAt.lt(startOfNextDay),
-                        ext.llmModel.eq("qwen2.5:7b"),
+                        ext.llmModel.eq("exaone3.5:7.8b"),
                         ext.promptVersion.eq("v1")
                 )
                 .fetch();

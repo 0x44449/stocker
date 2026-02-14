@@ -11,7 +11,7 @@ from models import NewsExtraction, NewsEmbedding, NewsRaw
 logger = logging.getLogger(__name__)
 
 # extraction 조회 시 고정 조건
-LLM_MODEL = "qwen2.5:7b"
+LLM_MODEL = "exaone3.5:7.8b"
 PROMPT_VERSION = "v1"
 
 TOPIC_PROMPT = """아래 뉴스 제목들을 대표하는 뉴스 헤드라인을 하나 만들어줘.
@@ -41,6 +41,7 @@ def _summarize_topic(titles: list[str]) -> str:
 
 def _summarize_body(texts: list[str]) -> str:
     """기사 본문들을 2~3줄로 요약"""
+    logger.info(f"본문 요약 시작 - 기사 수: {len(texts)}")
     llm = OllamaLLM(model="exaone3.5:7.8b", base_url=OLLAMA_BASE_URL)
     # 상위 5개, 각 300자 제한
     truncated = [t[:300] for t in texts[:5]]
@@ -54,6 +55,7 @@ def _summarize_body(texts: list[str]) -> str:
 def cluster_news(db: Session, keyword: str, days: int, eps: float):
     """keyword 관련 뉴스를 DBSCAN으로 클러스터링"""
     from datetime import date, datetime, timedelta
+    logger.info(f"클러스터링 시작 - 키워드: {keyword}, 기간(일): {days}, eps: {eps}")
 
     # days=2면 오늘+어제 → 어제 0시부터
     start = datetime.combine(date.today() - timedelta(days=days - 1), datetime.min.time())
