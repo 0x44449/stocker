@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from config import OLLAMA_BASE_URL
 from sqlalchemy import or_
 
-from models import NewsExtraction, NewsEmbedding, NewsRaw, StockAlias
+from models import NewsExtraction, NewsEmbedding, NewsRaw, StockAlias, SubsidiaryMapping
 
 logger = logging.getLogger(__name__)
 
@@ -62,14 +62,19 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
     # days=2면 오늘+어제 → 어제 0시부터
     start = datetime.combine(date.today() - timedelta(days=days - 1), datetime.min.time())
 
-    # keyword(종목명)에 해당하는 alias 목록 조회
+    # keyword(종목명)에 해당하는 alias, 자회사명 조회
     aliases = (
         db.query(StockAlias.alias)
         .filter(StockAlias.stock_name == keyword)
         .all()
     )
-    # 종목명 자체 + alias들을 합친 검색 키워드 목록
-    search_keywords = [keyword] + [row.alias for row in aliases]
+    subsidiaries = (
+        db.query(SubsidiaryMapping.subsidiary_name)
+        .filter(SubsidiaryMapping.stock_name == keyword)
+        .all()
+    )
+    # 종목명 + alias + 자회사명을 합친 검색 키워드 목록
+    search_keywords = [keyword] + [row.alias for row in aliases] + [row.subsidiary_name for row in subsidiaries]
 
     # keyword 관련 뉴스의 embedding, title을 한 번에 조회 (JOIN으로 embedding 없는 뉴스는 자동 제외)
     rows = (
