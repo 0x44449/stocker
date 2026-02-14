@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../src/theme";
 
 const API_BASE_URL = "http://localhost:28080";
@@ -68,22 +69,20 @@ interface StockTopicsDto {
   noise: ArticleDto[];
 }
 
-function formatPrice(price: number | null): string {
-  if (price == null) return "-";
-  return price.toLocaleString() + "원";
-}
+// --- TimeDisplay 컴포넌트 (하드코딩) ---
 
-function formatRate(rate: number | null): string {
-  if (rate == null) return "";
-  const sign = rate > 0 ? "+" : "";
-  return `${sign}${rate.toFixed(2)}%`;
-}
+function TimeDisplay() {
+  const { colors, isDark } = useTheme();
+  const sessionColor = isDark ? "#9CA3AF" : "#6B7280";
 
-function rateColor(rate: number | null): string {
-  if (rate == null) return "#999";
-  if (rate > 0) return "#DC2626";
-  if (rate < 0) return "#2563EB";
-  return "#999";
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <Text style={{ fontSize: 9, fontWeight: "700", color: sessionColor, letterSpacing: 0.2 }}>
+        장후
+      </Text>
+      <Text style={{ fontSize: 11, color: colors.textFaint }}>16:02</Text>
+    </View>
+  );
 }
 
 // --- 카드 컴포넌트 ---
@@ -91,49 +90,128 @@ function rateColor(rate: number | null): string {
 function StockTopicCard({ data }: { data: StockTopicsDto }) {
   const { colors, isDark } = useTheme();
 
+  const headline = data.topic?.title ?? `${data.keyword} 관련 뉴스`;
+  const summary = data.topic?.summary;
+
+  // 주체 종목 변동률
+  const mainRate = data.stock_price?.diff_rate ?? null;
+  const mainUp = mainRate !== null && mainRate > 0;
+
+  // 연관 종목 변동률
+  const relatedRate = data.related_stock?.diff_rate ?? null;
+  const relatedUp = relatedRate !== null && relatedRate > 0;
+
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      {/* 종목 헤더 */}
-      <View style={styles.cardHeader}>
-        <Text style={[styles.stockName, { color: colors.text }]}>{data.keyword}</Text>
-        <View style={styles.priceArea}>
-          <Text style={[styles.priceText, { color: colors.text }]}>
-            {formatPrice(data.stock_price?.close ?? null)}
-          </Text>
-          <Text style={[styles.rateText, { color: rateColor(data.stock_price?.diff_rate ?? null) }]}>
-            {formatRate(data.stock_price?.diff_rate ?? null)}
+      {/* 그라데이션 이미지 영역 */}
+      <View style={[styles.eventImageContainer, { backgroundColor: colors.track }]}>
+        <LinearGradient
+          colors={["#1a1a2e", "#16213e", "#0f3460", "#533483"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        >
+          <View style={[styles.decoCircle, { width: 160, height: 160, borderRadius: 80, right: -30, top: -50, opacity: 0.08 }]} />
+          <View style={[styles.decoCircle, { width: 100, height: 100, borderRadius: 50, right: -10, top: 60, opacity: 0.06 }]} />
+          <View style={[styles.decoCircle, { width: 80, height: 80, borderRadius: 40, left: 50, bottom: -20, opacity: 0.05 }]} />
+        </LinearGradient>
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.6)"]}
+          style={styles.eventImageOverlay}
+        />
+        {/* 좌하단: 타입 배지 + 시간 */}
+        <View style={styles.eventImageBadges}>
+          <View style={styles.eventTypeBadgeOnImage}>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: "#FFF" }}>
+              📊 실적
+            </Text>
+          </View>
+          <TimeDisplay />
+        </View>
+        {/* 우상단: 기사 건수 */}
+        <View style={styles.eventArticleCount}>
+          <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>
+            기사 {data.total_count}건
           </Text>
         </View>
       </View>
 
-      {/* 토픽 */}
-      {data.topic && (
-        <View style={[styles.topicSection, { borderTopColor: colors.divider }]}>
-          <Text style={[styles.topicTitle, { color: colors.text }]}>
-            📰 {data.topic.title} ({data.topic.count}건)
-          </Text>
-          <Text style={[styles.topicSummary, { color: colors.textSecondary }]}>
-            {data.topic.summary}
-          </Text>
-        </View>
-      )}
+      {/* 헤드라인 + 요약 */}
+      <View style={{ padding: 12, paddingHorizontal: 14, paddingBottom: 0 }}>
+        <Text style={[styles.eventHeadline, { color: colors.text }]}>{headline}</Text>
+        {summary && (
+          <Text style={[styles.eventSummary, { color: colors.textMuted }]}>{summary}</Text>
+        )}
+      </View>
 
-      {/* 관련 종목 */}
-      {data.related_stock && (
-        <View style={[styles.relatedSection, { borderTopColor: colors.divider, backgroundColor: colors.surface }]}>
-          <Text style={[styles.relatedLabel, { color: colors.textMuted }]}>
-            관련: {data.related_stock.stock_name} ({data.related_stock.mention_count}회 언급)
-          </Text>
-          <View style={styles.relatedPriceRow}>
-            <Text style={[styles.relatedPrice, { color: colors.textSecondary }]}>
-              {formatPrice(data.related_stock.close)}
-            </Text>
-            <Text style={[styles.relatedRate, { color: rateColor(data.related_stock.diff_rate) }]}>
-              {formatRate(data.related_stock.diff_rate)}
+      {/* 주가 반응 영역 */}
+      <View style={[styles.stockReactionArea, { borderTopColor: colors.divider, backgroundColor: colors.surface }]}>
+        {/* 주체 종목 */}
+        <View style={styles.stockReactionRow}>
+          <Text style={[styles.stockName, { color: colors.text }]}>{data.keyword}</Text>
+          <Text style={[styles.stockRole, { color: colors.textFaint }]}>주체</Text>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={[styles.reactionBarTrack, { backgroundColor: colors.track }]}>
+              {mainRate !== null && (
+                <View
+                  style={[
+                    styles.reactionBarFill,
+                    {
+                      width: `${Math.min(Math.abs(mainRate) * 5, 50)}%`,
+                      backgroundColor: mainUp ? "#EF4444" : "#3B82F6",
+                      left: mainUp ? "50%" : undefined,
+                      right: mainUp ? undefined : "50%",
+                    },
+                  ]}
+                />
+              )}
+              <View style={[styles.reactionBarCenter, { backgroundColor: colors.textFaint }]} />
+            </View>
+            <Text
+              style={[
+                styles.reactionPercent,
+                { color: mainRate === null ? "#999" : mainUp ? "#DC2626" : "#2563EB" },
+              ]}
+            >
+              {mainRate !== null ? `${mainUp ? "+" : ""}${mainRate.toFixed(2)}%` : "-"}
             </Text>
           </View>
         </View>
-      )}
+
+        {/* 연관 종목 */}
+        {data.related_stock && (
+          <View style={[styles.stockReactionRow, { opacity: 0.55 }]}>
+            <Text style={[styles.stockName, { color: colors.text }]}>{data.related_stock.stock_name}</Text>
+            <Text style={[styles.stockRole, { color: colors.textFaint }]}>연관종목</Text>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View style={[styles.reactionBarTrack, { backgroundColor: colors.track }]}>
+                {relatedRate !== null && (
+                  <View
+                    style={[
+                      styles.reactionBarFill,
+                      {
+                        width: `${Math.min(Math.abs(relatedRate) * 5, 50)}%`,
+                        backgroundColor: relatedUp ? "#EF4444" : "#3B82F6",
+                        left: relatedUp ? "50%" : undefined,
+                        right: relatedUp ? undefined : "50%",
+                      },
+                    ]}
+                  />
+                )}
+                <View style={[styles.reactionBarCenter, { backgroundColor: colors.textFaint }]} />
+              </View>
+              <Text
+                style={[
+                  styles.reactionPercent,
+                  { color: relatedRate === null ? "#999" : relatedUp ? "#DC2626" : "#2563EB" },
+                ]}
+              >
+                {relatedRate !== null ? `${relatedUp ? "+" : ""}${relatedRate.toFixed(2)}%` : "-"}
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -243,66 +321,105 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
   },
-  cardHeader: {
-    padding: 14,
+
+  // 이미지 영역
+  eventImageContainer: {
+    height: 150,
+    overflow: "hidden",
+  },
+  decoCircle: {
+    position: "absolute",
+    backgroundColor: "white",
+  },
+  eventImageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
+  eventImageBadges: {
+    position: "absolute",
+    bottom: 10,
+    left: 12,
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    gap: 6,
+    alignItems: "center",
   },
-  stockName: {
-    fontSize: 16,
-    fontWeight: "700",
+  eventTypeBadgeOnImage: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
   },
-  priceArea: {
-    alignItems: "flex-end",
-  },
-  priceText: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  rateText: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 2,
+  eventArticleCount: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 
-  // 토픽
-  topicSection: {
-    padding: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  topicTitle: {
-    fontSize: 14,
+  // 헤드라인 / 요약
+  eventHeadline: {
+    fontSize: 15.5,
     fontWeight: "700",
+    lineHeight: 22,
+    letterSpacing: -0.3,
     marginBottom: 6,
   },
-  topicSummary: {
+  eventSummary: {
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 19.5,
+    marginBottom: 12,
   },
 
-  // 관련 종목
-  relatedSection: {
-    padding: 14,
-    paddingVertical: 10,
+  // 주가 반응 영역
+  stockReactionArea: {
     borderTopWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  relatedLabel: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  relatedPriceRow: {
+  stockReactionRow: {
     flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 3,
     gap: 8,
   },
-  relatedPrice: {
+  stockName: {
     fontSize: 13,
     fontWeight: "600",
+    width: 72,
   },
-  relatedRate: {
-    fontSize: 13,
-    fontWeight: "600",
+  stockRole: {
+    fontSize: 10,
+    width: 52,
+  },
+  reactionBarTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+    position: "relative",
+  },
+  reactionBarFill: {
+    position: "absolute",
+    height: "100%",
+    borderRadius: 2,
+  },
+  reactionBarCenter: {
+    position: "absolute",
+    left: "50%",
+    width: 1,
+    height: "100%",
+    opacity: 0.3,
+  },
+  reactionPercent: {
+    fontSize: 12,
+    fontWeight: "700",
+    width: 48,
+    textAlign: "right",
   },
 });
