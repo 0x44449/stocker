@@ -60,9 +60,19 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
     # days=2면 오늘+어제 → 어제 0시부터
     start = datetime.combine(date.today() - timedelta(days=days - 1), datetime.min.time())
 
-    # 1. news_extraction에서 keyword + 날짜 범위로 news_id 조회
-    extractions = (
-        db.query(NewsExtraction.news_id)
+    # keyword 관련 뉴스의 embedding, title을 한 번에 조회 (JOIN으로 embedding 없는 뉴스는 자동 제외)
+    # SELECT e.news_id, emb.embedding, r.title
+    # FROM news_extraction e
+    # JOIN news_embedding emb ON emb.news_id = e.news_id
+    # JOIN news_raw r ON r.id = e.news_id
+    # WHERE e.keywords @> '["keyword"]'
+    #   AND e.published_at >= :start
+    #   AND e.llm_model = 'exaone3.5:7.8b'
+    #   AND e.prompt_version = 'v1'
+    rows = (
+        db.query(NewsExtraction.news_id, NewsEmbedding.embedding, NewsRaw.title)
+        .join(NewsEmbedding, NewsEmbedding.news_id == NewsExtraction.news_id)
+        .join(NewsRaw, NewsRaw.id == NewsExtraction.news_id)
         .filter(
             NewsExtraction.keywords.op("@>")(f'["{keyword}"]'),
             NewsExtraction.published_at >= start,
@@ -71,42 +81,29 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
         )
         .all()
     )
-    news_ids = [row.news_id for row in extractions]
+    logger.info(f"뉴스 조회 완료 - {len(rows)}건")
 
-    if not news_ids:
+    if not rows:
         return {"keyword": keyword, "total_count": 0, "topic": None, "clusters": [], "noise": []}
 
-    # 2. news_embedding에서 embedding 로드
-    embeddings = (
-        db.query(NewsEmbedding.news_id, NewsEmbedding.embedding)
-        .filter(NewsEmbedding.news_id.in_(news_ids))
-        .all()
-    )
-
-    # 3. news_raw에서 title 로드
-    titles = (
-        db.query(NewsRaw.id, NewsRaw.title)
-        .filter(NewsRaw.id.in_(news_ids))
-        .all()
-    )
-    title_map = {row.id: row.title for row in titles}
-
-    # embedding이 없는 뉴스는 제외
     valid_news_ids = []
     vectors = []
-    for row in embeddings:
+    title_map = {}
+    for row in rows:
         valid_news_ids.append(row.news_id)
         vectors.append(np.array(row.embedding))
+        title_map[row.news_id] = row.title
 
     if not vectors:
         return {"keyword": keyword, "total_count": 0, "topic": None, "clusters": [], "noise": []}
 
-    # 4. DBSCAN 클러스터링
+    # DBSCAN 클러스터링 (cosine 거리 기반, label=-1은 노이즈)
     matrix = np.stack(vectors)
     clustering = DBSCAN(eps=eps, min_samples=2, metric="cosine").fit(matrix)
+    logger.info(f"DBSCAN 완료 - 클러스터 수: {len(set(clustering.labels_)) - (1 if -1 in clustering.labels_ else 0)}")
     labels = clustering.labels_
 
-    # 5. 클러스터별 기사 목록 구성
+    # 클러스터별 기사 목록 구성
     cluster_map = {}
     noise_articles = []
 
@@ -119,7 +116,6 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
         else:
             cluster_map.setdefault(int(label), []).append(article)
 
-    # count 내림차순 정렬
     sorted_clusters = sorted(
         [
             {"count": int(len(articles)), "articles": articles}
@@ -131,7 +127,7 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
 
     total_count = len(valid_news_ids)
 
-    # 6. 가장 큰 클러스터에 LLM 요약 제목 + 본문 요약 생성
+    # 가장 큰 클러스터에 LLM 요약 제목 + 본문 요약 생성
     topic = None
     remaining_clusters = sorted_clusters
     if sorted_clusters:
