@@ -41,4 +41,5 @@ def extract_companies(text: str) -> tuple[list[str], str]:
     if not raw or raw == "없음":
         return [], raw
     keywords = [name.strip() for name in raw.split(",") if name.strip()]
+    keywords = list(dict.fromkeys(keywords))  # 순서 유지하면서 중복 제거
     return keywords, raw
