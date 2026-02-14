@@ -15,6 +15,7 @@ from embedding.job import run_embedding_batch
 from embedding.router import router as embedding_router
 from search.router import router as search_router
 from clustering.router import router as clustering_router
+from anomaly.router import router as anomaly_router
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(run_batch, "cron", hour="8,10,13,16,19", id="batch_extract")
@@ -40,3 +41,4 @@ app.include_router(extraction_router)
 app.include_router(embedding_router)
 app.include_router(search_router)
 app.include_router(clustering_router)
+app.include_router(anomaly_router)
