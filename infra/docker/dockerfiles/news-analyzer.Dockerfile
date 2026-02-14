@@ -28,6 +28,7 @@ COPY extraction extraction
 COPY embedding embedding
 COPY search search
 COPY clustering clustering
+COPY anomaly anomaly
 RUN mkdir -p /app/.cache && chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8000
