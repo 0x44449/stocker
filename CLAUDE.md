@@ -78,8 +78,11 @@ Monolithic Spring Boot with feature-based package separation:
 ```
 com.hanzi.stocker
 ├── config/        # QuerydslConfig, WebConfig
-├── api/           # REST controllers (public + internal admin endpoints)
-├── api/internal/  # Internal admin endpoints (crawler triggers)
+├── api/           # REST controllers (public endpoints)
+│   ├── feed/      # HotStock, StockTopics (피드 관련)
+│   ├── headline/  # HeadlineController
+│   ├── newsmapping/ # NewsMappingController
+│   └── internal/  # Admin endpoints (crawler triggers)
 ├── ingest/        # Data collection modules
 │   ├── news/      # News article crawling from press sites
 │   └── krx/       # KRX market data (index, investor flow, stock prices)
@@ -104,13 +107,14 @@ com.hanzi.stocker
 
 ### News Analyzer Pipeline
 
-- **Extraction** (scheduled 9h/21h UTC): LLM extracts company names from news articles
-- **Embedding** (scheduled 0h/12h UTC): Creates vector embeddings for similarity search
+- **Extraction** (scheduled 8,10,13,16,19h UTC): LLM extracts company names from news articles
+- **Embedding** (scheduled 9,11,14,17,20h UTC): Creates vector embeddings for similarity search
+- **Clustering**: Groups similar news articles for topic-based display
 - **Search**: pgvector-based similar news retrieval
 
 ## Database
 
-- Flyway migrations in `apps/api/src/main/resources/db/migration/` (V1 through V13)
+- Flyway migrations in `apps/api/src/main/resources/db/migration/` (V1 through V15)
 - Naming: `V1__init.sql`, `V2__add_news_raw.sql`, etc.
 - JPA uses `ddl-auto: validate` (Flyway owns schema)
 - Never modify already-applied migration files; create new versions instead
@@ -126,6 +130,8 @@ Refer to `docs/CODING_DECISIONS.md` for the full decision log. Key decisions:
 - **springdoc-openapi 3.0.1**: Required for Spring Boot 4.0 + QueryDSL compatibility (2.x incompatible)
 - **Parsing**: Strict `parseLong()` by default, `parseLongOrNull()` only for known special cases (e.g. "무액면")
 - **Crawl logging**: Structured logs to `CRAWL` logger (event=, jobId=, provider=)
+- **No FK**: Foreign keys and CASCADE not used; data integrity managed at application level
+- **Explicit PK naming**: New tables use `extraction_id`, `link_id` etc. instead of generic `id`
 
 ## Infrastructure
 
