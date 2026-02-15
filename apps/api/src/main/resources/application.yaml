@@ -36,3 +36,6 @@ logging:
     CRAWL: INFO
     com.hanzi.stocker.ingest.news: INFO
     com.hanzi.stocker.ingest.krx: INFO
+
+server:
+  forward-headers-strategy: framework
