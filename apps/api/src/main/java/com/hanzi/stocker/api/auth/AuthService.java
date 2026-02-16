@@ -10,6 +10,7 @@ import com.hanzi.stocker.repositories.AllowedUserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.concurrent.TimeUnit;
 
@@ -35,7 +36,12 @@ public class AuthService {
     public String verifyAndGetUid(String token) throws Exception {
         DecodedJWT decoded = JWT.decode(token);
         Jwk jwk = jwkProvider.get(decoded.getKeyId());
-        Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+        // JWKS 키의 알고리즘에 따라 검증 방식 자동 선택
+        Algorithm algorithm = switch (jwk.getAlgorithm()) {
+            case "ES256" -> Algorithm.ECDSA256((ECPublicKey) jwk.getPublicKey(), null);
+            case "RS256" -> Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+            default -> throw new IllegalArgumentException("지원하지 않는 알고리즘: " + jwk.getAlgorithm());
+        };
         DecodedJWT verified = JWT.require(algorithm).build().verify(token);
         return verified.getSubject();
     }
