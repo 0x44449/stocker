@@ -37,8 +37,8 @@ supabase:
 logging:
   level:
     CRAWL: INFO
-    com.hanzi.stocker.ingest.news: INFO
-    com.hanzi.stocker.ingest.krx: INFO
+    app.sandori.stocker.api.ingest.news: INFO
+    app.sandori.stocker.api.ingest.krx: INFO
 
 server:
   forward-headers-strategy: framework

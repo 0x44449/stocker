@@ -26,7 +26,7 @@ docs/               # Project docs, coding rules, work specs
 ./gradlew build           # Build
 ./gradlew bootRun         # Run application
 ./gradlew test            # Run all tests
-./gradlew test --tests "com.hanzi.stocker.ingest.krx.index.KrxIndexCsvParserTest"  # Single class
+./gradlew test --tests "app.sandori.stocker.api.ingest.krx.index.KrxIndexCsvParserTest"  # Single class
 ./gradlew test --tests "KrxIndexCsvParserTest.parse_normalRow_parsesAllFields"     # Single method
 ./gradlew clean           # Clean artifacts
 ```
@@ -53,6 +53,13 @@ npm run ios    # iOS simulator
 npm run android # Android emulator
 ```
 
+### Quick Start Scripts (from project root)
+
+```bash
+./start-api.sh        # API bootRun
+./start-analyzer.sh   # News Analyzer uvicorn (port 8001)
+```
+
 ### Docker Deployment
 
 ```bash
@@ -76,10 +83,11 @@ docker compose -f infra/docker/docker-compose.yml up -d   # Start all services
 Monolithic Spring Boot with feature-based package separation:
 
 ```
-com.hanzi.stocker
-├── config/        # QuerydslConfig, WebConfig
-├── api/           # REST controllers (public endpoints)
-│   ├── feed/      # HotStock, StockTopics (피드 관련)
+app.sandori.stocker.api
+├── config/        # QuerydslConfig, WebConfig, AuthInterceptor, @AllowPublic, @Authenticated
+├── domain/        # REST controllers (public endpoints)
+│   ├── auth/      # AuthController, AuthService (Supabase JWT 인증)
+│   ├── feed/      # HotStock, StockTopics, NewsAnomaly (피드 관련)
 │   ├── headline/  # HeadlineController
 │   ├── newsmapping/ # NewsMappingController
 │   └── internal/  # Admin endpoints (crawler triggers)
@@ -93,7 +101,7 @@ com.hanzi.stocker
 ### Ingest Module Patterns
 
 **News Crawling** (`ingest/news/`):
-- `NewsProvider` interface: Each press site (hk/, mk/) implements parsing, URL filtering, sitemap hints
+- `NewsProvider` interface: Each press site (hk/, mk/, etoday/, sed/) implements parsing, URL filtering, sitemap hints
 - `ProviderRegistry`: Auto-discovers all `NewsProvider` beans via Spring DI
 - `NewsCrawlEngine`: Orchestrates robots.txt → sitemap → fetch → parse → save
 - `CrawlLock`: Prevents concurrent crawl jobs via AtomicBoolean
@@ -105,16 +113,25 @@ com.hanzi.stocker
 - Per-data-type modules: `index/`, `investor/`, `stock/`, `master/`
 - Each has: CrawlEngine + CrawlScheduler → CsvParser → Repository
 
+### Authentication
+
+Supabase JWT 기반 인증. `AuthInterceptor`가 `/api/**` 경로에 적용:
+
+- 기본 동작: Bearer JWT 검증 + `allowed_user` 테이블 확인 (실패 시 401/403)
+- `@AllowPublic`: 인증 완전 스킵 (공개 API용)
+- `@Authenticated`: JWT 검증만 수행, 허용 사용자 확인 안함
+
 ### News Analyzer Pipeline
 
 - **Extraction** (scheduled 8,10,13,16,19h UTC): LLM extracts company names from news articles
 - **Embedding** (scheduled 9,11,14,17,20h UTC): Creates vector embeddings for similarity search
 - **Clustering**: Groups similar news articles for topic-based display
+- **Anomaly** (`anomaly/`): 뉴스 급증 감지 (news spike detection)
 - **Search**: pgvector-based similar news retrieval
 
 ## Database
 
-- Flyway migrations in `apps/api/src/main/resources/db/migration/` (V1 through V15)
+- Flyway migrations in `apps/api/src/main/resources/db/migration/` (V1 through V19)
 - Naming: `V1__init.sql`, `V2__add_news_raw.sql`, etc.
 - JPA uses `ddl-auto: validate` (Flyway owns schema)
 - Never modify already-applied migration files; create new versions instead
