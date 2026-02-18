@@ -22,7 +22,7 @@ analyzer:
   url: ${ANALYZER_URL:http://localhost:8000}
 
 supabase:
-  url: ${SUPABASE_URL}
+  url: ${SUPABASE_URL:}
 
 server:
   forward-headers-strategy: framework
