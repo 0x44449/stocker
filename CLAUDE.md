@@ -186,20 +186,62 @@ Refer to `docs/CODING_DECISIONS.md` for the full decision log. Key decisions:
 - KRX credentials: set `KRX_USERNAME` and `KRX_PASSWORD` env vars (Ingest 서비스에서 사용)
 - Ollama: local instance, accessed via `host.docker.internal:11434` from Docker
 
-## Workflow: docs/WORK.md
+## Workflow
 
-This project uses a role-based workflow (defined in `docs/ARCHITECT.md`, `docs/CODER.md`, `docs/REVIEWER.md`):
+Claude Code가 설계/구현/리뷰/커밋을 모두 수행한다.
 
-1. **Architect** writes a work spec in `docs/WORK.md`
-2. **Coder (Claude Code)** implements exactly what's in WORK.md — no more, no less
-3. **Reviewer** checks implementation against WORK.md, then commits after user (zina) confirmation
-4. On commit, WORK.md is archived to `docs/WORKS/YYYYMMDD_NNN_description.md`
+### 작업 흐름
 
-As Coder, follow these rules:
-- Implement only what's specified in `docs/WORK.md`
-- Don't add unrequested error handling, logging, validation, or "improvements"
-- Ask before deciding edge cases or ambiguous requirements
-- Leave `TODO:` comments for uncertain parts
+1. zina가 작업 요청
+2. Claude Code가 구현 계획을 제시하고 **반드시 zina 승인을 받은 후** 구현 시작
+3. 구현 완료 후 변경사항 리뷰 및 커밋 메시지 제안
+4. **zina 컨펌 후** 로컬 커밋 수행 (push는 명시적 요청 시에만)
+
+### 구현 규칙
+
+- 요청된 범위 내에서만 작업한다
+- 요청하지 않은 에러 처리, 로깅, 검증, "개선"을 추가하지 않는다
+- 불명확한 부분은 구현 전에 zina에게 확인한다
+- 경계 조건, 예외 처리, 엣지 케이스를 임의로 결정하지 않는다
+- 불확실한 부분은 `// TODO:` 로 남긴다
+
+### 커밋 규칙
+
+- **zina 컨펌 없이 절대 커밋하지 않는다**
+- 커밋 메시지: `<type>: <subject>` (한글, 50자 이내)
+- Type: `feat`, `fix`, `refactor`, `chore`, `docs`
+- Body(선택): 변경 사항 간략 나열
+- `git push`는 zina가 명시적으로 요청할 때만 수행
+
+### 리뷰 규칙
+
+- 구현 완료 후 자체 리뷰를 수행한다
+- 불필요한 파일 변경이 없는지 확인한다
+- `CODING_RULE.md`, `CODING_DECISIONS.md` 규칙 위반이 없는지 확인한다
+- 리뷰 결과와 커밋 메시지를 zina에게 보고한다
+
+### PROJECT_CONTEXT.md / CODING_DECISIONS.md 기록
+
+- 논의 중 설계/코딩 결정이 나오면 zina에게 기록 여부를 확인한다
+- 질문 형식: "이번에 [X] 결정했는데, CODING_DECISIONS에 기록할까요?"
+- zina가 컨펌하면 해당 문서에 기록한다
+
+### HANDOFF (세션 간 작업 인계)
+
+긴 작업이 세션을 넘어갈 때 `docs/HANDOFF.md`를 사용하여 작업을 이어간다.
+
+**새 세션 시작 시**: `docs/HANDOFF.md`가 존재하면 먼저 읽고 이전 작업을 이어간다.
+
+**작업 중 기록 시점**: 작업이 길어져서 세션이 끊길 수 있을 때 HANDOFF.md에 현재 상태를 기록한다.
+
+**HANDOFF.md 포함 내용**:
+- 작업 목표: 무엇을 하고 있었는지
+- 완료된 것: 이미 끝난 항목
+- 진행 중인 것: 현재 하고 있던 작업과 상태
+- 남은 것: 아직 안 한 항목
+- 주의사항: 이어서 작업할 때 알아야 할 컨텍스트
+
+**작업 완료 시**: 커밋 후 HANDOFF.md를 삭제한다.
 
 ## Coding Rules (from docs/CODING_RULE.md)
 
