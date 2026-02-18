@@ -1,5 +1,5 @@
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, String, DateTime, Boolean, Column, Date, Numeric, Integer
+from sqlalchemy import BigInteger, String, DateTime, Column, Date, Numeric, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 
 from database import Base
@@ -12,24 +12,6 @@ class NewsRaw(Base):
     title = Column(String)
     published_at = Column(DateTime)
     raw_text = Column(String)
-
-
-class NewsCompanyExtraction(Base):
-    __tablename__ = "news_company_extraction"
-
-    id = Column(BigInteger, primary_key=True)
-    news_id = Column(BigInteger)
-    status = Column(String)
-    created_at = Column(DateTime)
-    processed_at = Column(DateTime)
-
-
-class NewsCompanyExtractionResult(Base):
-    __tablename__ = "news_company_extraction_result"
-
-    id = Column(BigInteger, primary_key=True)
-    extraction_id = Column(BigInteger)
-    company_name = Column(String)
 
 
 class NewsEmbedding(Base):
@@ -48,19 +30,6 @@ class StockMaster(Base):
     stock_code = Column(String)
     name_kr = Column(String)
     name_kr_short = Column(String)
-
-
-class CompanyNameMapping(Base):
-    __tablename__ = "company_name_mapping"
-
-    id = Column(BigInteger, primary_key=True)
-    news_id = Column(BigInteger)
-    extracted_name = Column(String)
-    matched_stock_code = Column(String)
-    match_type = Column(String)
-    verified = Column(Boolean)
-    created_at = Column(DateTime)
-    updated_at = Column(DateTime)
 
 
 class StockAlias(Base):

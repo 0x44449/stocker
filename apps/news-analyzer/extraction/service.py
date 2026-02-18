@@ -3,7 +3,7 @@ import time
 
 from langchain_ollama import OllamaLLM
 
-from config import OLLAMA_BASE_URL
+from config import OLLAMA_BASE_URL, LLM_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def extract_companies(text: str) -> tuple[list[str], str]:
     logger.info(f"LLM 호출 시작 - 텍스트 길이: {text_length}")
 
     start_time = time.time()
-    llm = OllamaLLM(model="exaone3.5:7.8b", base_url=OLLAMA_BASE_URL)
+    llm = OllamaLLM(model=LLM_MODEL, base_url=OLLAMA_BASE_URL)
     prompt = PROMPT_TEMPLATE.format(text=text)
     raw = llm.invoke(prompt).strip()
     elapsed = time.time() - start_time

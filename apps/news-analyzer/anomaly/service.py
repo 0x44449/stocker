@@ -4,13 +4,10 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from config import LLM_MODEL, PROMPT_VERSION
 from models import NewsExtraction, StockMaster, StockAlias, SubsidiaryMapping
 
 logger = logging.getLogger(__name__)
-
-# extraction 조회 시 고정 조건
-LLM_MODEL = "exaone3.5:7.8b"
-PROMPT_VERSION = "v1"
 
 # 이상 탐지 기준값
 MIN_TODAY_COUNT = 10

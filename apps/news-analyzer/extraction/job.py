@@ -3,6 +3,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
+from config import LLM_MODEL, PROMPT_VERSION
 from database import SessionLocal
 from extraction.service import extract_companies
 from models import NewsRaw, NewsExtraction
@@ -11,9 +12,6 @@ logger = logging.getLogger(__name__)
 
 _running = False
 _lock = threading.Lock()
-
-LLM_MODEL = "exaone3.5:7.8b"
-PROMPT_VERSION = "v1"
 
 
 def is_running() -> bool:

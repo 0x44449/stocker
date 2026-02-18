@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from extraction.service import extract_companies
-from extraction.job import run_batch, is_running as is_batch_running, LLM_MODEL, PROMPT_VERSION
+from config import LLM_MODEL, PROMPT_VERSION
+from extraction.job import run_batch, is_running as is_batch_running
 from models import NewsRaw, NewsExtraction
 
 router = APIRouter(prefix="/extraction")
@@ -54,6 +55,7 @@ def extract(req: ExtractRequest, db: Session = Depends(get_db)):
         llm_response=llm_response,
         llm_model=req.llm_model,
         prompt_version=req.prompt_version,
+        published_at=news.published_at,
         created_at=datetime.now(timezone.utc),
     )
     db.add(extraction)

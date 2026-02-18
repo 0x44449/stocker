@@ -3,6 +3,7 @@ import logging
 import threading
 from datetime import datetime, date, timedelta, timezone
 
+from config import LLM_MODEL, PROMPT_VERSION
 from database import SessionLocal
 from clustering.service import cluster_news
 from models import (
@@ -13,10 +14,6 @@ logger = logging.getLogger(__name__)
 
 _running = False
 _lock = threading.Lock()
-
-# extraction 조회 시 고정 조건
-LLM_MODEL = "exaone3.5:7.8b"
-PROMPT_VERSION = "v1"
 
 
 def is_running() -> bool:

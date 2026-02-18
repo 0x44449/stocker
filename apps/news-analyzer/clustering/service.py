@@ -5,16 +5,12 @@ from langchain_ollama import OllamaLLM
 from sklearn.cluster import DBSCAN
 from sqlalchemy.orm import Session
 
-from config import OLLAMA_BASE_URL
+from config import OLLAMA_BASE_URL, LLM_MODEL, PROMPT_VERSION
 from sqlalchemy import or_
 
 from models import NewsExtraction, NewsEmbedding, NewsRaw, StockAlias, SubsidiaryMapping, StockMaster, StockPriceDailyRaw
 
 logger = logging.getLogger(__name__)
-
-# extraction 조회 시 고정 조건
-LLM_MODEL = "exaone3.5:7.8b"
-PROMPT_VERSION = "v1"
 
 TOPIC_PROMPT = """아래 뉴스 제목들을 대표하는 뉴스 헤드라인을 하나 만들어줘.
 실제 뉴스 기사 제목처럼 작성해. 다른 설명 없이 헤드라인만 출력해.
@@ -34,7 +30,7 @@ SUMMARY_PROMPT = """아래 뉴스 본문들을 읽고 핵심 내용을 2~3줄로
 
 def _summarize_topic(titles: list[str]) -> str:
     """기사 제목 목록에서 대표 헤드라인 생성"""
-    llm = OllamaLLM(model="exaone3.5:7.8b", base_url=OLLAMA_BASE_URL)
+    llm = OllamaLLM(model=LLM_MODEL, base_url=OLLAMA_BASE_URL)
     prompt = TOPIC_PROMPT.format(titles="\n".join(f"- {t}" for t in titles))
     result = llm.invoke(prompt).strip()
     logger.info(f"토픽 요약 완료 - 제목 수: {len(titles)}, 결과: {result}")
@@ -44,7 +40,7 @@ def _summarize_topic(titles: list[str]) -> str:
 def _summarize_body(texts: list[str]) -> str:
     """기사 본문들을 2~3줄로 요약"""
     logger.info(f"본문 요약 시작 - 기사 수: {len(texts)}")
-    llm = OllamaLLM(model="exaone3.5:7.8b", base_url=OLLAMA_BASE_URL)
+    llm = OllamaLLM(model=LLM_MODEL, base_url=OLLAMA_BASE_URL)
     # 상위 5개, 각 300자 제한
     truncated = [t[:300] for t in texts[:5]]
     bodies = "\n\n".join(f"[기사 {i+1}]\n{t}" for i, t in enumerate(truncated))
