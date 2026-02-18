@@ -1,4 +1,4 @@
-package app.sandori.stocker.api.api;
+package app.sandori.stocker.api.domain;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

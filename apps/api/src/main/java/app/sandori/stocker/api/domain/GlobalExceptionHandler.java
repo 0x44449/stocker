@@ -1,4 +1,4 @@
-package app.sandori.stocker.api.api;
+package app.sandori.stocker.api.domain;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
