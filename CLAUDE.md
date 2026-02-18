@@ -85,7 +85,7 @@ docker compose -f infra/docker/docker-compose.yml up -d   # Start all services
 
 **Ingest**: Java 25, Spring Boot 4.0.2, PostgreSQL, Spring Data JPA, RestClient, Jsoup, Commons CSV, **No Lombok**
 
-**News Analyzer**: Python, FastAPI, LangChain + Ollama (qwen2.5:7b), sentence-transformers (KURE-v1), pgvector, APScheduler
+**News Analyzer**: Python, FastAPI, LangChain + Ollama (exaone3.5:7.8b), sentence-transformers (KURE-v1), pgvector, APScheduler
 
 **Admin Web**: Next.js 16, React 19, TypeScript, Tailwind CSS 4, Radix UI
 
@@ -144,17 +144,58 @@ app.sandori.stocker.ingest
 
 Supabase JWT 기반 인증. `AuthInterceptor`가 `/api/**` 경로에 적용:
 
-- 기본 동작: Bearer JWT 검증 + `allowed_user` 테이블 확인 (실패 시 401/403)
-- `@AllowPublic`: 인증 완전 스킵 (공개 API용)
-- `@Authenticated`: JWT 검증만 수행, 허용 사용자 확인 안함
+- 기본 동작: **Anonymous 허용** (인증 없이 접근 가능)
+- `@Authenticated`: 클래스 또는 메서드에 부착 → JWT 검증 + `allowed_user` 확인 (실패 시 401/403)
+- `@AllowPublic`: `@Authenticated` 클래스 내 특정 메서드만 Anonymous 허용할 때 사용
+- `allowed_user`는 개발 편의용 로직 (향후 정식 사용자 검증으로 교체 예정)
 
-### News Analyzer Pipeline
+### News Analyzer Architecture
 
-- **Extraction** (scheduled 8,10,13,16,19h UTC): LLM extracts company names from news articles
-- **Embedding** (scheduled 9,11,14,17,20h UTC): Creates vector embeddings for similarity search
-- **Clustering**: Groups similar news articles for topic-based display
-- **Anomaly** (`anomaly/`): 뉴스 급증 감지 (news spike detection)
-- **Search**: pgvector-based similar news retrieval
+독립 Python FastAPI 앱. 뉴스 분석/가공 전용. LLM 설정은 `config.py`에서 중앙 관리 (`LLM_MODEL`, `PROMPT_VERSION`):
+
+```
+apps/news-analyzer/
+├── config.py          # DB, Ollama, LLM 모델, 로깅 설정
+├── database.py        # SQLAlchemy engine (pool_pre_ping=True)
+├── models.py          # ORM 모델
+├── extraction/        # LLM 키워드 추출
+├── embedding/         # 벡터 임베딩 생성
+├── clustering/        # DBSCAN 클러스터링 + LLM 요약
+├── anomaly/           # 뉴스 급증 감지
+└── search/            # pgvector 유사 뉴스 검색
+```
+
+**스케줄 잡** (APScheduler):
+- **Extraction** (cron 08,10,13,16,19h UTC): LLM으로 뉴스에서 종목 키워드 추출 → `news_extraction`
+- **Embedding** (cron 09,11,14,17,20h UTC): 뉴스 벡터 임베딩 생성 → `news_embedding`
+- **Clustering** (매시간): DBSCAN + LLM 요약 → `stock_cluster_result` (input_hash로 중복 스킵)
+
+**실시간 엔드포인트**:
+- **Anomaly** (`GET /anomaly/detect`): 최근 24h vs 과거 5일 평균 비교로 뉴스 급증 감지
+- **Search** (`GET /search`): pgvector 유사 뉴스 검색
+- **Clustering** (`POST /clustering/similar-news`): 온디맨드 클러스터링
+
+### Service Interaction
+
+```
+[Ingest] → DB ← [News-Analyzer] ← HTTP ← [API]
+```
+
+- **Ingest → DB**: 뉴스/KRX 데이터 수집 후 DB에 저장
+- **News-Analyzer → DB**: 스케줄 잡이 DB에서 읽고 분석 결과를 DB에 저장
+- **API → DB**: 대부분의 엔드포인트가 DB 직접 조회 (hot-stocks, stock-topics 등)
+- **API → Analyzer**: `GET /api/feed/news-anomalies`만 Analyzer HTTP 호출 (`GET /anomaly/detect`)
+
+**데이터 흐름 순서**:
+1. Ingest가 뉴스 크롤링 → `news_raw`
+2. Analyzer Extraction이 키워드 추출 → `news_extraction`
+3. Analyzer Embedding이 벡터 생성 → `news_embedding`
+4. Analyzer Clustering이 클러스터링 → `stock_cluster_result`
+5. API가 DB에서 가공된 결과 조회
+
+**참조 테이블** (수동 관리):
+- `stock_alias`: 종목 별칭 (수동 입력)
+- `subsidiary_mapping`: 자회사 매핑 (수동 입력)
 
 ## Database
 
@@ -168,7 +209,7 @@ Supabase JWT 기반 인증. `AuthInterceptor`가 `/api/**` 경로에 적용:
 Refer to `docs/CODING_DECISIONS.md` for the full decision log. Key decisions:
 
 - **Upsert via saveAll()**: For small datasets (<5k, daily), JPA saveAll() over native SQL upsert to avoid column hardcoding
-- **Timezone**: KST (+09:00) for display, UTC for storage
+- **Timezone**: Ingest가 KST naive를 `TIMESTAMP` (without timezone)에 저장. Analyzer도 naive datetime 사용. 양쪽 모두 timezone-naive로 일관성 유지. Docker 컨테이너에 TZ 미설정 시 9시간 차이 발생 가능 (향후 `TZ: Asia/Seoul` 설정 필요)
 - **Dynamic queries via QueryDSL**: Not @Query native SQL. Simple queries use JPA method naming
 - **DB vs business logic**: DB handles filtering/paging, service layer handles aggregation/status calculation
 - **springdoc-openapi 3.0.1**: Required for Spring Boot 4.0 + QueryDSL compatibility (2.x incompatible)
