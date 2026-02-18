@@ -49,13 +49,23 @@ export default function RootLayout() {
   // 세션 복원 완료 전에는 아무것도 렌더링하지 않음 (스플래시 유지)
   if (isLoading) return null;
 
+  const colors = isDark ? darkColors : lightColors;
+
   return (
     <AuthContext.Provider value={{ session, isLoading }}>
-      <ThemeContext.Provider value={{ colors: isDark ? darkColors : lightColors, isDark }}>
+      <ThemeContext.Provider value={{ colors, isDark }}>
         <SafeAreaProvider>
-          <Stack>
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.bg },
+              headerTintColor: colors.text,
+              headerTitleStyle: { color: colors.text },
+            }}
+          >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="stock-detail" options={{ title: "종목 상세" }} />
+            <Stack.Screen name="article-list" options={{ title: "기사 목록" }} />
           </Stack>
         </SafeAreaProvider>
       </ThemeContext.Provider>

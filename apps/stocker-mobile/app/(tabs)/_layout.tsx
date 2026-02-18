@@ -27,11 +27,29 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="watchlist"
+        options={{
+          title: "관심종목",
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 20, color }}>⭐</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="sample"
         options={{
           title: "샘플",
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 20, color }}>🧪</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "설정",
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 20, color }}>⚙️</Text>
           ),
         }}
       />
