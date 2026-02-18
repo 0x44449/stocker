@@ -9,8 +9,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../src/theme";
-
-const API_BASE_URL = "http://localhost:28080";
+import { useAuth } from "../../lib/auth";
+import { API_BASE_URL } from "../../lib/config";
 
 const STOCK_NAMES = [
   "삼성전자",
@@ -220,6 +220,7 @@ function StockTopicCard({ data }: { data: StockTopicsDto }) {
 
 export default function FeedTab() {
   const { colors } = useTheme();
+  const { session } = useAuth();
   const [data, setData] = useState<StockTopicsDto[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -229,9 +230,13 @@ export default function FeedTab() {
 
   async function fetchAll() {
     setLoading(true);
+    const headers: Record<string, string> = {};
+    if (session?.access_token) {
+      headers["Authorization"] = `Bearer ${session.access_token}`;
+    }
     const results = await Promise.allSettled(
       STOCK_NAMES.map((name) =>
-        fetch(`${API_BASE_URL}/api/feed/stock-topics?keyword=${encodeURIComponent(name)}&days=2&eps=0.2`)
+        fetch(`${API_BASE_URL}/api/feed/stock-topics?keyword=${encodeURIComponent(name)}&days=2&eps=0.2`, { headers })
           .then((res) => res.json() as Promise<StockTopicsDto>)
       )
     );
