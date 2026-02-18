@@ -1,5 +1,6 @@
 package app.sandori.stocker.api.domain.feed;
 
+import app.sandori.stocker.api.config.Authenticated;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Authenticated
 @RestController
 @RequestMapping("/api/feed")
 @Tag(name = "Feed", description = "피드 카드 조회")

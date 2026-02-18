@@ -1,5 +1,6 @@
 package app.sandori.stocker.api.domain;
 
+import app.sandori.stocker.api.config.Authenticated;
 import app.sandori.stocker.api.repositories.StockMasterRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Authenticated
 @RestController
 @RequestMapping("/api/stocks")
 @Tag(name = "Stock", description = "종목 정보 조회")

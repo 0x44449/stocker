@@ -26,11 +26,21 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // @AllowPublic이 붙은 메서드는 인증 스킵
+        // 인증이 필요한지 판단: @Authenticated가 클래스 또는 메서드에 있는지
+        boolean classAuth = handlerMethod.getBeanType().isAnnotationPresent(Authenticated.class);
+        boolean methodAuth = handlerMethod.hasMethodAnnotation(Authenticated.class);
+
+        // @Authenticated가 없으면 기본 Anonymous 허용
+        if (!classAuth && !methodAuth) {
+            return true;
+        }
+
+        // 클래스에 @Authenticated가 있어도 메서드에 @AllowPublic이 있으면 Anonymous 허용
         if (handlerMethod.hasMethodAnnotation(AllowPublic.class)) {
             return true;
         }
 
+        // JWT 검증
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED", "INVALID_TOKEN");
@@ -48,12 +58,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         request.setAttribute("uid", uid);
 
-        // @Authenticated가 붙은 메서드는 JWT 검증만 (허용 사용자 확인 안함)
-        if (handlerMethod.hasMethodAnnotation(Authenticated.class)) {
-            return true;
-        }
-
-        // 기본: JWT 검증 + 허용 사용자 확인
+        // allowed_user 확인
         if (!authService.isAllowedUser(uid)) {
             writeError(response, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", "USER_NOT_ALLOWED");
             return false;

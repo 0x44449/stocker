@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Authenticated
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Auth", description = "인증")
@@ -23,7 +24,6 @@ public class AuthController {
     public record AuthMeResponse(String status, String uid) {}
 
     // 현재 JWT의 사용자 상태 확인 (APPROVED: 허용됨, PENDING: 대기중)
-    @Authenticated
     @GetMapping("/me")
     @Operation(summary = "현재 사용자 인증 상태 확인")
     @ApiResponse(responseCode = "200", description = "인증 상태")
