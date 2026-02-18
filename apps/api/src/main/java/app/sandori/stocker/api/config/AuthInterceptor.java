@@ -3,8 +3,6 @@ package app.sandori.stocker.api.config;
 import app.sandori.stocker.api.domain.auth.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -13,7 +11,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthInterceptor.class);
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final AuthService authService;
@@ -45,7 +42,6 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         // JWT 검증
         String authHeader = request.getHeader("Authorization");
-        log.info("Authorization 헤더: {}", authHeader == null ? "없음" : "Bearer ***" + authHeader.substring(Math.max(0, authHeader.length() - 20)));
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED", "INVALID_TOKEN");
             return false;
@@ -56,7 +52,6 @@ public class AuthInterceptor implements HandlerInterceptor {
         try {
             uid = authService.verifyAndGetUid(token);
         } catch (Exception e) {
-            log.warn("JWT 검증 실패: {}", e.getMessage(), e);
             writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED", "INVALID_TOKEN");
             return false;
         }
