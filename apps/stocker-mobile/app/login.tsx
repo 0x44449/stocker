@@ -4,10 +4,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { login as kakaoLogin } from "@react-native-seoul/kakao-login";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { supabase } from "../lib/supabase";
-import { GOOGLE_WEB_CLIENT_ID } from "../lib/config";
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "../lib/config";
 import { useTheme } from "../src/theme";
 
-GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  iosClientId: GOOGLE_IOS_CLIENT_ID,
+});
 
 export default function LoginScreen() {
   const { colors, isDark } = useTheme();

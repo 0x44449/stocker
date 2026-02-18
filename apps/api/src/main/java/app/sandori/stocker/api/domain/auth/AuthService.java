@@ -10,6 +10,7 @@ import app.sandori.stocker.api.repositories.AllowedUserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.concurrent.TimeUnit;
@@ -21,9 +22,10 @@ public class AuthService {
     private final AllowedUserRepository allowedUserRepository;
 
     public AuthService(@Value("${supabase.url}") String supabaseUrl,
-                       AllowedUserRepository allowedUserRepository) {
-        // Supabase JWKS endpoint에서 공개키 자동 조회 (캐싱: 최대 10개 키, 24시간)
-        this.jwkProvider = new JwkProviderBuilder(supabaseUrl)
+                       AllowedUserRepository allowedUserRepository) throws Exception {
+        // Supabase JWKS endpoint: {supabaseUrl}/auth/v1/.well-known/jwks.json
+        var jwksUrl = URI.create(supabaseUrl + "/auth/v1/.well-known/jwks.json").toURL();
+        this.jwkProvider = new JwkProviderBuilder(jwksUrl)
                 .cached(10, 24, TimeUnit.HOURS)
                 .build();
         this.allowedUserRepository = allowedUserRepository;

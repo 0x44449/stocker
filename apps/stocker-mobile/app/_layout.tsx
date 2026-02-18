@@ -46,6 +46,9 @@ export default function RootLayout() {
     }
   }, [session, isLoading, segments]);
 
+  // 세션 복원 완료 전에는 아무것도 렌더링하지 않음 (스플래시 유지)
+  if (isLoading) return null;
+
   return (
     <AuthContext.Provider value={{ session, isLoading }}>
       <ThemeContext.Provider value={{ colors: isDark ? darkColors : lightColors, isDark }}>

@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.anonymous.stocker-mobile",
+    bundleIdentifier: "app.sandori.stocker",
   },
   android: {
     adaptiveIcon: {
@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
-    package: "com.anonymous.stockermobile",
+    package: "app.sandori.stocker",
   },
   web: {
     favicon: "./assets/favicon.png",
