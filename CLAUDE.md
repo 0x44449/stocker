@@ -97,12 +97,11 @@ Spring Boot 사용자 API 전용 (데이터 수집 기능 없음):
 
 ```
 app.sandori.stocker.api
-├── config/        # QuerydslConfig, WebConfig, AuthInterceptor, @AllowPublic, @Authenticated
-├── domain/        # REST controllers (public endpoints)
+├── config/        # OpenApiConfig, QuerydslConfig, WebConfig, AuthInterceptor, @AllowPublic, @Authenticated
+├── domain/        # REST controllers + services
 │   ├── auth/      # AuthController, AuthService (Supabase JWT 인증)
 │   ├── feed/      # HotStock, StockTopics, NewsAnomaly (피드 관련)
-│   ├── headline/  # HeadlineController
-│   └── newsmapping/ # NewsMappingController
+│   ├── HealthController, StockController, GlobalExceptionHandler, ErrorResponse
 ├── entities/      # JPA entities
 └── repositories/  # JPA + QueryDSL repositories
 ```
