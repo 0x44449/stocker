@@ -33,10 +33,11 @@ usage() {
     echo ""
     echo "Services:"
     echo "  api              API 서버만"
+    echo "  ingest           Ingest 서버만"
     echo "  news-analyzer    News Analyzer 서버만"
     echo "  admin-web        Admin Web 서버만"
     echo "  postgres         PostgreSQL만"
-    echo "  (생략시 api, news-analyzer, admin-web)"
+    echo "  (생략시 api, ingest, news-analyzer, admin-web)"
     echo ""
     echo "Examples:"
     echo "  $0                      # api, news-analyzer, admin-web 배포"
@@ -69,7 +70,7 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
-        api|news-analyzer|admin-web|postgres)
+        api|ingest|news-analyzer|admin-web|postgres)
             SERVICES+=("$1")
             shift
             ;;
@@ -98,7 +99,7 @@ fi
 
 # 서비스 미지정 시 기본값: api, news-analyzer, admin-web
 if [ ${#SERVICES[@]} -eq 0 ]; then
-    SERVICES=("api" "news-analyzer" "admin-web")
+    SERVICES=("api" "ingest" "news-analyzer" "admin-web")
 fi
 
 # 컨테이너 중지
@@ -137,6 +138,7 @@ docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 echo ""
 echo "Endpoints:"
 echo "  - API:           http://localhost:28080/health"
+echo "  - Ingest:        http://localhost:28081/health"
 echo "  - News Analyzer: http://localhost:28000/health"
 echo "  - Admin Web:     http://localhost:23000"
 echo ""

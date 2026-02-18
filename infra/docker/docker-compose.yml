@@ -28,8 +28,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      KRX_USERNAME: ${KRX_USERNAME}
-      KRX_PASSWORD: ${KRX_PASSWORD}
       ANALYZER_URL: http://news-analyzer:8000
       LOGGING_LEVEL_ROOT: ${API_LOG_LEVEL}
     ports:
@@ -39,6 +37,31 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  ingest:
+    build:
+      context: ../../apps/ingest
+      dockerfile: ../../infra/docker/dockerfiles/ingest.Dockerfile
+    container_name: stocker-ingest
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      KRX_USERNAME: ${KRX_USERNAME}
+      KRX_PASSWORD: ${KRX_PASSWORD}
+      LOGGING_LEVEL_ROOT: ${INGEST_LOG_LEVEL}
+    ports:
+      - "${EXTERNAL_INGEST_PORT}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

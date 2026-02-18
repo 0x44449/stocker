@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: ingest
+  datasource:
+    url: jdbc:postgresql://localhost:5433/stocker
+    username: stocker
+    password: stocker
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      keepalive-time: 60000
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: false
+
+crawler:
+  news:
+    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    delay-seconds: 2
+    raw-retention-days: 30
+
+krx:
+  username: ${KRX_USERNAME:}
+  password: ${KRX_PASSWORD:}
+
+logging:
+  level:
+    CRAWL: INFO
+    app.sandori.stocker.ingest.news: INFO
+    app.sandori.stocker.ingest.krx: INFO
+
+server:
+  port: 8081
+  forward-headers-strategy: framework

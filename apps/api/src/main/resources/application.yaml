@@ -18,27 +18,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
-crawler:
-  news:
-    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    delay-seconds: 2
-    raw-retention-days: 30
-
-krx:
-  username: ${KRX_USERNAME:}
-  password: ${KRX_PASSWORD:}
-
 analyzer:
   url: ${ANALYZER_URL:http://localhost:8000}
 
 supabase:
   url: ${SUPABASE_URL}
-
-logging:
-  level:
-    CRAWL: INFO
-    app.sandori.stocker.api.ingest.news: INFO
-    app.sandori.stocker.api.ingest.krx: INFO
 
 server:
   forward-headers-strategy: framework

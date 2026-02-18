@@ -10,7 +10,8 @@ Stocker is a stock situation analysis service that aggregates price data, offici
 
 ```
 apps/
-├── api/            # Java Spring Boot backend (main service)
+├── api/            # Java Spring Boot backend (사용자 API 전용)
+├── ingest/         # Java Spring Boot (뉴스/KRX 데이터 수집 전용)
 ├── news-analyzer/  # Python FastAPI for news extraction/embedding
 ├── admin-web/      # Next.js admin dashboard
 └── stocker-mobile/ # Expo React Native mobile app
@@ -26,8 +27,17 @@ docs/               # Project docs, coding rules, work specs
 ./gradlew build           # Build
 ./gradlew bootRun         # Run application
 ./gradlew test            # Run all tests
-./gradlew test --tests "app.sandori.stocker.api.ingest.krx.index.KrxIndexCsvParserTest"  # Single class
-./gradlew test --tests "KrxIndexCsvParserTest.parse_normalRow_parsesAllFields"     # Single method
+./gradlew test --tests "ClassName"        # Single class
+./gradlew test --tests "ClassName.method" # Single method
+./gradlew clean           # Clean artifacts
+```
+
+### Ingest (Spring Boot) - from `apps/ingest/`
+
+```bash
+./gradlew build           # Build
+./gradlew bootRun         # Run application (port 8081)
+./gradlew test            # Run all tests
 ./gradlew clean           # Clean artifacts
 ```
 
@@ -56,7 +66,8 @@ npm run android # Android emulator
 ### Quick Start Scripts (from project root)
 
 ```bash
-./start-api.sh        # API bootRun
+./start-api.sh        # API bootRun (port 8080)
+./start-ingest.sh     # Ingest bootRun (port 8081)
 ./start-analyzer.sh   # News Analyzer uvicorn (port 8001)
 ```
 
@@ -70,7 +81,9 @@ docker compose -f infra/docker/docker-compose.yml up -d   # Start all services
 
 ## Tech Stack
 
-**API**: Java 25, Spring Boot 4.0.2, PostgreSQL (pgvector), Flyway, Spring Data JPA + QueryDSL, RestClient, Jsoup, **No Lombok**
+**API**: Java 25, Spring Boot 4.0.2, PostgreSQL (pgvector), Flyway, Spring Data JPA + QueryDSL, RestClient, **No Lombok**
+
+**Ingest**: Java 25, Spring Boot 4.0.2, PostgreSQL, Spring Data JPA, RestClient, Jsoup, Commons CSV, **No Lombok**
 
 **News Analyzer**: Python, FastAPI, LangChain + Ollama (qwen2.5:7b), sentence-transformers (KURE-v1), pgvector, APScheduler
 
@@ -80,7 +93,7 @@ docker compose -f infra/docker/docker-compose.yml up -d   # Start all services
 
 ## API Architecture
 
-Monolithic Spring Boot with feature-based package separation:
+Spring Boot 사용자 API 전용 (데이터 수집 기능 없음):
 
 ```
 app.sandori.stocker.api
@@ -89,25 +102,40 @@ app.sandori.stocker.api
 │   ├── auth/      # AuthController, AuthService (Supabase JWT 인증)
 │   ├── feed/      # HotStock, StockTopics, NewsAnomaly (피드 관련)
 │   ├── headline/  # HeadlineController
-│   ├── newsmapping/ # NewsMappingController
-│   └── internal/  # Admin endpoints (crawler triggers)
-├── ingest/        # Data collection modules
-│   ├── news/      # News article crawling from press sites
-│   └── krx/       # KRX market data (index, investor flow, stock prices)
+│   └── newsmapping/ # NewsMappingController
 ├── entities/      # JPA entities
 └── repositories/  # JPA + QueryDSL repositories
 ```
 
+## Ingest Architecture
+
+독립 Spring Boot 앱. 뉴스/KRX 데이터 수집 전용 (Flyway 미사용, API 앱이 스키마 관리):
+
+```
+app.sandori.stocker.ingest
+├── controller/    # NewsCrawlController, StockMasterCrawlController, HealthController
+├── news/          # News article crawling from press sites
+│   └── provider/  # hk/, mk/, etoday/, sed/ (각 언론사 크롤러)
+├── krx/           # KRX market data
+│   ├── common/    # KrxAuthClient, KrxFileClient, KrxSessionProvider
+│   ├── index/     # 시장지수
+│   ├── investor/  # 투자자별 매매동향
+│   ├── stock/     # 종목별 시세
+│   └── master/    # 종목 마스터
+├── entities/      # JPA entities (API 앱에서 복사)
+└── repositories/  # JPA repositories (API 앱에서 복사)
+```
+
 ### Ingest Module Patterns
 
-**News Crawling** (`ingest/news/`):
+**News Crawling** (`news/`):
 - `NewsProvider` interface: Each press site (hk/, mk/, etoday/, sed/) implements parsing, URL filtering, sitemap hints
 - `ProviderRegistry`: Auto-discovers all `NewsProvider` beans via Spring DI
 - `NewsCrawlEngine`: Orchestrates robots.txt → sitemap → fetch → parse → save
 - `CrawlLock`: Prevents concurrent crawl jobs via AtomicBoolean
 - Rate limiting: Configurable delay between requests, respects HTTP 429
 
-**KRX Data** (`ingest/krx/`):
+**KRX Data** (`krx/`):
 - `KrxSessionProvider`: Manages authenticated KRX sessions (credentials via env vars `KRX_USERNAME`, `KRX_PASSWORD`)
 - `KrxFileClient`: Common OTP generation + CSV download flow using RestClient
 - Per-data-type modules: `index/`, `investor/`, `stock/`, `master/`
@@ -154,8 +182,8 @@ Refer to `docs/CODING_DECISIONS.md` for the full decision log. Key decisions:
 
 - PostgreSQL (pgvector/pgvector:pg17) via Docker Compose
 - PostgreSQL port: 5433 externally (avoids conflict with local postgres 5432)
-- Docker ports: API=28080, Analyzer=28000, Admin Web=23000
-- KRX credentials: set `KRX_USERNAME` and `KRX_PASSWORD` env vars
+- Docker ports: API=28080, Ingest=28081, Analyzer=28000, Admin Web=23000
+- KRX credentials: set `KRX_USERNAME` and `KRX_PASSWORD` env vars (Ingest 서비스에서 사용)
 - Ollama: local instance, accessed via `host.docker.internal:11434` from Docker
 
 ## Workflow: docs/WORK.md
