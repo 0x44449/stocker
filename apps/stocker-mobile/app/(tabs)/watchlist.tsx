@@ -91,17 +91,16 @@ function StockCard({ stock }: { stock: WatchlistStock }) {
               </View>
             </View>
           </View>
-          {stock.issues.length > 0 && (
-            <View style={styles.issueRow}>
-              {stock.issues.map((issue, i) => (
-                <View key={i} style={styles.issuePill}>
-                  <Text style={styles.issuePillText}>{issue}</Text>
-                </View>
-              ))}
-            </View>
-          )}
         </View>
       </TouchableOpacity>
+
+      {/* 하이라이트 */}
+      {stock.highlight && (
+        <View style={[styles.highlightArea, { borderLeftColor: isUp ? "#DC2626" : "#2563EB" }]}>
+          <Text style={[styles.highlightMain, { color: colors.text }]}>{stock.highlight.main}</Text>
+          <Text style={[styles.highlightSub, { color: colors.textMuted }]} numberOfLines={1}>{stock.highlight.sub}</Text>
+        </View>
+      )}
 
       {/* 클러스터 목록 또는 빈 상태 */}
       {stock.clusters.length === 0 ? (
@@ -174,7 +173,7 @@ const styles = StyleSheet.create({
 
   // 카드 헤더
   cardHeader: {
-    minHeight: 100,
+    minHeight: 90,
     overflow: "hidden",
   },
   decoCircle: {
@@ -191,21 +190,22 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
   },
-  issueRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-    marginTop: 8,
+  highlightArea: {
+    marginLeft: 14,
+    marginRight: 14,
+    marginTop: 10,
+    paddingLeft: 10,
+    paddingVertical: 4,
+    borderLeftWidth: 3,
   },
-  issuePill: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+  highlightMain: {
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: -0.3,
   },
-  issuePillText: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.75)",
+  highlightSub: {
+    fontSize: 12,
+    marginTop: 2,
   },
   cardHeaderLeft: {
     flex: 1,

@@ -21,6 +21,11 @@ export interface ClusterItem {
   articles: ArticleItem[];
 }
 
+export interface StockHighlight {
+  main: string;       // 크게 보여줄 핵심 텍스트
+  sub: string;        // 부연 설명
+}
+
 export interface WatchlistStock {
   stockCode: string;
   stockName: string;
@@ -28,7 +33,7 @@ export interface WatchlistStock {
   changeRate: number;
   changeAmount: number;
   newsCount: number;
-  issues: string[];
+  highlight: StockHighlight | null;
   clusters: ClusterItem[];
 }
 
@@ -40,7 +45,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: 2.3,
     changeAmount: 1600,
     newsCount: 12,
-    issues: ["2분기 실적 서프라이즈", "2nm 파운드리 수율 개선", "AI 반도체 10조 투자"],
+    highlight: { main: "영업이익 10.4조", sub: "전년비 15배↑ · 메모리 가격 상승 효과" },
     clusters: [
       {
         clusterId: "c-sam-1",
@@ -110,7 +115,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: 3.1,
     changeAmount: 5600,
     newsCount: 8,
-    issues: ["HBM4 엔비디아 납품", "분기 영업이익 사상 최대"],
+    highlight: { main: "HBM4 세계 최초 납품", sub: "엔비디아向 샘플 납품 완료 · 내년 양산" },
     clusters: [
       {
         clusterId: "c-skh-1",
@@ -159,7 +164,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: -1.2,
     changeAmount: -2600,
     newsCount: 6,
-    issues: ["하이퍼클로바X 기업용 출시", "공정위 검색 알고리즘 조사"],
+    highlight: { main: "공정위 조사 착수", sub: "검색 알고리즘 자사 우대 혐의 · 과징금 가능성" },
     clusters: [
       {
         clusterId: "c-nav-1",
@@ -208,7 +213,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: -2.5,
     changeAmount: -1100,
     newsCount: 5,
-    issues: ["SM 인수 재판 일정 확정", "AI 챗봇 카나나 베타"],
+    highlight: { main: "SM 재판 D-30", sub: "시세조종 혐의 재판 다음달 시작 · 경영 불확실성" },
     clusters: [
       {
         clusterId: "c-kko-1",
@@ -256,7 +261,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: 0.5,
     changeAmount: 1200,
     newsCount: 0,
-    issues: [],
+    highlight: null,
     clusters: [],
   },
 ];
