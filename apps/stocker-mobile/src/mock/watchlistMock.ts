@@ -28,6 +28,7 @@ export interface WatchlistStock {
   changeRate: number;
   changeAmount: number;
   newsCount: number;
+  issues: string[];
   clusters: ClusterItem[];
 }
 
@@ -39,6 +40,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: 2.3,
     changeAmount: 1600,
     newsCount: 12,
+    issues: ["2분기 실적 서프라이즈", "2nm 파운드리 수율 개선", "AI 반도체 10조 투자"],
     clusters: [
       {
         clusterId: "c-sam-1",
@@ -108,6 +110,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: 3.1,
     changeAmount: 5600,
     newsCount: 8,
+    issues: ["HBM4 엔비디아 납품", "분기 영업이익 사상 최대"],
     clusters: [
       {
         clusterId: "c-skh-1",
@@ -156,6 +159,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: -1.2,
     changeAmount: -2600,
     newsCount: 6,
+    issues: ["하이퍼클로바X 기업용 출시", "공정위 검색 알고리즘 조사"],
     clusters: [
       {
         clusterId: "c-nav-1",
@@ -204,6 +208,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: -2.5,
     changeAmount: -1100,
     newsCount: 5,
+    issues: ["SM 인수 재판 일정 확정", "AI 챗봇 카나나 베타"],
     clusters: [
       {
         clusterId: "c-kko-1",
@@ -251,6 +256,7 @@ export const WATCHLIST_STOCKS: WatchlistStock[] = [
     changeRate: 0.5,
     changeAmount: 1200,
     newsCount: 0,
+    issues: [],
     clusters: [],
   },
 ];

@@ -1,25 +1,9 @@
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme";
 import { WATCHLIST_STOCKS, WatchlistStock, ClusterItem } from "../../src/mock/watchlistMock";
-
-// 카테고리별 뱃지 스타일
-const CATEGORY_STYLES: Record<string, { color: string; bg: string; darkColor: string; darkBg: string }> = {
-  "실적": { color: "#92400E", bg: "#FEF3C7", darkColor: "#FCD34D", darkBg: "#42200680" },
-  "사업": { color: "#1E40AF", bg: "#DBEAFE", darkColor: "#93C5FD", darkBg: "#1E3A5C80" },
-  "규제": { color: "#991B1B", bg: "#FEE2E2", darkColor: "#FCA5A5", darkBg: "#3D202080" },
-  "경영": { color: "#6B21A8", bg: "#F3E8FF", darkColor: "#C4B5FD", darkBg: "#3B1F5680" },
-  "산업": { color: "#3730A3", bg: "#E0E7FF", darkColor: "#A5B4FC", darkBg: "#2D2D4A80" },
-  "기술": { color: "#065F46", bg: "#D1FAE5", darkColor: "#6EE7B7", darkBg: "#064E3B80" },
-};
-
-function getCategoryStyle(category: string, isDark: boolean) {
-  const style = CATEGORY_STYLES[category] ?? CATEGORY_STYLES["사업"];
-  return isDark
-    ? { color: style.darkColor, bg: style.darkBg }
-    : { color: style.color, bg: style.bg };
-}
 
 function formatPrice(price: number): string {
   return price.toLocaleString("ko-KR");
@@ -36,39 +20,25 @@ function formatChangeAmount(amount: number): string {
 }
 
 // 클러스터 항목
-function ClusterRow({ cluster, isDark, colors, onPress }: {
+function ClusterRow({ cluster, colors, onPress }: {
   cluster: ClusterItem;
-  isDark: boolean;
   colors: any;
   onPress: () => void;
 }) {
-  const catStyle = getCategoryStyle(cluster.category, isDark);
-  const isUp = cluster.changeRate > 0;
-  const rateColor = cluster.changeRate === 0 ? colors.textMuted : isUp ? "#DC2626" : "#2563EB";
 
   return (
     <TouchableOpacity
-      style={[styles.clusterRow, { borderTopColor: colors.divider }]}
+      style={styles.clusterRow}
       onPress={onPress}
       activeOpacity={0.6}
     >
-      <View style={styles.clusterLeft}>
-        <View style={[styles.categoryBadge, { backgroundColor: catStyle.bg }]}>
-          <Text style={[styles.categoryBadgeText, { color: catStyle.color }]}>{cluster.category}</Text>
-        </View>
-        <Text style={[styles.clusterHeadline, { color: colors.text }]} numberOfLines={1}>
-          {cluster.headline}
-        </Text>
-      </View>
-      <View style={styles.clusterRight}>
-        <View style={styles.clusterMeta}>
-          <Text style={[styles.clusterTime, { color: colors.textFaint }]}>{cluster.time}</Text>
-          <Text style={[styles.clusterArticleCount, { color: colors.textMuted }]}>
-            {cluster.articleCount}건
-          </Text>
-        </View>
-        <Text style={[styles.clusterRate, { color: rateColor }]}>
-          {formatChangeRate(cluster.changeRate)}
+      <Text style={[styles.clusterHeadline, { color: colors.text }]} numberOfLines={2}>
+        {cluster.headline}
+      </Text>
+      <View style={styles.clusterMeta}>
+        <Text style={[styles.clusterTime, { color: colors.textFaint }]}>{cluster.time}</Text>
+        <Text style={[styles.clusterArticleCount, { color: colors.textMuted }]}>
+          {cluster.articleCount}건
         </Text>
       </View>
     </TouchableOpacity>
@@ -77,10 +47,9 @@ function ClusterRow({ cluster, isDark, colors, onPress }: {
 
 // 종목 카드
 function StockCard({ stock }: { stock: WatchlistStock }) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const router = useRouter();
   const isUp = stock.changeRate > 0;
-  const rateColor = stock.changeRate === 0 ? colors.textMuted : isUp ? "#DC2626" : "#2563EB";
 
   const goToDetail = () => {
     router.push({ pathname: "/stock-detail", params: { stockCode: stock.stockCode } });
@@ -92,57 +61,62 @@ function StockCard({ stock }: { stock: WatchlistStock }) {
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      {/* 카드 헤더 */}
+      {/* 카드 헤더 - 이미지 영역 */}
       <TouchableOpacity style={styles.cardHeader} onPress={goToDetail} activeOpacity={0.6}>
-        <View style={styles.cardHeaderLeft}>
-          <Text style={[styles.stockName, { color: colors.text }]}>{stock.stockName}</Text>
-          <Text style={[styles.stockCode, { color: colors.textFaint }]}>{stock.stockCode}</Text>
-        </View>
-        <View style={styles.cardHeaderRight}>
-          <Text style={[styles.price, { color: colors.text }]}>{formatPrice(stock.price)}</Text>
-          <View style={styles.changeRow}>
-            <Text style={[styles.changeRate, { color: rateColor }]}>
-              {formatChangeRate(stock.changeRate)}
-            </Text>
-            <Text style={[styles.changeAmount, { color: rateColor }]}>
-              {formatChangeAmount(stock.changeAmount)}
-            </Text>
+        <LinearGradient
+          colors={["#1a1a2e", "#16213e", "#0f3460", "#533483"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        >
+          {/* TODO: 종목별 대표 이미지 영역 */}
+          <View style={[styles.decoCircle, { width: 140, height: 140, borderRadius: 70, right: -20, top: -40, opacity: 0.08 }]} />
+          <View style={[styles.decoCircle, { width: 80, height: 80, borderRadius: 40, right: 10, bottom: -10, opacity: 0.06 }]} />
+        </LinearGradient>
+        <View style={styles.cardHeaderContent}>
+          <View style={styles.cardHeaderTop}>
+            <View style={styles.cardHeaderLeft}>
+              <Text style={[styles.stockName, { color: "#FFFFFF" }]}>{stock.stockName}</Text>
+              <Text style={[styles.stockCode, { color: "rgba(255,255,255,0.6)" }]}>{stock.stockCode}</Text>
+            </View>
+            <View style={styles.cardHeaderRight}>
+              <Text style={[styles.price, { color: "#FFFFFF" }]}>{formatPrice(stock.price)}</Text>
+              <View style={styles.changeRow}>
+                <Text style={[styles.changeRate, { color: isUp ? "#FCA5A5" : "#93C5FD" }]}>
+                  {formatChangeRate(stock.changeRate)}
+                </Text>
+                <Text style={[styles.changeAmount, { color: isUp ? "#FCA5A5" : "#93C5FD" }]}>
+                  {formatChangeAmount(stock.changeAmount)}
+                </Text>
+              </View>
+            </View>
           </View>
+          {stock.issues.length > 0 && (
+            <View style={styles.issueRow}>
+              {stock.issues.map((issue, i) => (
+                <View key={i} style={styles.issuePill}>
+                  <Text style={styles.issuePillText}>{issue}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
-        {stock.newsCount > 0 && (
-          <View style={[styles.newsCountBadge, { backgroundColor: isDark ? "#3A3A3C" : "#F3F4F6" }]}>
-            <Text style={[styles.newsCountText, { color: colors.textMuted }]}>
-              뉴스 {stock.newsCount}
-            </Text>
-          </View>
-        )}
       </TouchableOpacity>
 
       {/* 클러스터 목록 또는 빈 상태 */}
       {stock.clusters.length === 0 ? (
-        <View style={[styles.emptyCluster, { borderTopColor: colors.divider }]}>
+        <View style={styles.emptyCluster}>
           <Text style={{ color: colors.textMuted, fontSize: 13 }}>최근 주요 뉴스가 없습니다</Text>
         </View>
       ) : (
-        <>
-          {stock.clusters.slice(0, 3).map((cluster) => (
-            <ClusterRow
-              key={cluster.clusterId}
-              cluster={cluster}
-              isDark={isDark}
-              colors={colors}
-              onPress={() => goToArticles(cluster.clusterId)}
-            />
-          ))}
-          {/* 전체보기 */}
-          <TouchableOpacity
-            style={[styles.viewAllRow, { borderTopColor: colors.divider }]}
-            onPress={goToDetail}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.viewAllText, { color: colors.textMuted }]}>전체보기</Text>
-          </TouchableOpacity>
-        </>
+        stock.clusters.slice(0, 3).map((cluster) => (
+          <ClusterRow
+            key={cluster.clusterId}
+            cluster={cluster}
+            colors={colors}
+            onPress={() => goToArticles(cluster.clusterId)}
+          />
+        ))
       )}
     </View>
   );
@@ -200,10 +174,38 @@ const styles = StyleSheet.create({
 
   // 카드 헤더
   cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    minHeight: 100,
+    overflow: "hidden",
+  },
+  decoCircle: {
+    position: "absolute",
+    backgroundColor: "white",
+  },
+  cardHeaderContent: {
+    flex: 1,
+    justifyContent: "flex-end",
     padding: 14,
-    gap: 8,
+  },
+  cardHeaderTop: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  issueRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 8,
+  },
+  issuePill: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  issuePillText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.75)",
   },
   cardHeaderLeft: {
     flex: 1,
@@ -212,8 +214,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   stockName: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     letterSpacing: -0.3,
   },
   stockCode: {
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   price: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
   },
   changeRow: {
@@ -237,18 +239,6 @@ const styles = StyleSheet.create({
   changeAmount: {
     fontSize: 11,
   },
-  newsCountBadge: {
-    position: "absolute",
-    top: 12,
-    right: 14,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  newsCountText: {
-    fontSize: 10,
-    fontWeight: "500",
-  },
 
   // 클러스터 행
   clusterRow: {
@@ -256,33 +246,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderTopWidth: 1,
     gap: 8,
-  },
-  clusterLeft: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  categoryBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  categoryBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
   },
   clusterHeadline: {
     flex: 1,
     fontSize: 13,
     fontWeight: "500",
     letterSpacing: -0.2,
-  },
-  clusterRight: {
-    alignItems: "flex-end",
-    gap: 2,
   },
   clusterMeta: {
     flexDirection: "row",
@@ -295,26 +265,11 @@ const styles = StyleSheet.create({
   clusterArticleCount: {
     fontSize: 10,
   },
-  clusterRate: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
 
   // 빈 상태
   emptyCluster: {
-    borderTopWidth: 1,
     paddingVertical: 20,
     alignItems: "center",
   },
 
-  // 전체보기
-  viewAllRow: {
-    borderTopWidth: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  viewAllText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
 });
