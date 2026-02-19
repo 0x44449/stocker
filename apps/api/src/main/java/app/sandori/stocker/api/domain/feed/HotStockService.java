@@ -31,7 +31,7 @@ public class HotStockService {
 
     // --- DTO ---
 
-    public record HotStock(int rank, String companyName, int count) {}
+    public record HotStock(int rank, String stockCode, String stockName, int count) {}
 
     public record HotStockResponse(List<HotStock> stocks) {}
 
@@ -59,28 +59,35 @@ public class HotStockService {
             return new HotStockResponse(List.of());
         }
 
-        // 2. stock_master 종목명 Set 구성
-        var stockNames = new HashSet<String>();
+        // 2. stock_master에서 종목명 → 종목코드 매핑 구성
+        Map<String, String> nameToCode = new HashMap<>();
         for (var stock : stockMasterRepository.findAll()) {
-            stockNames.add(stock.getNameKr());
-            stockNames.add(stock.getNameKrShort());
+            nameToCode.put(stock.getNameKr(), stock.getStockCode());
+            nameToCode.put(stock.getNameKrShort(), stock.getStockCode());
         }
 
-        // 3. keywords 풀어서 stock_master에 있는 것만 카운팅
-        Map<String, Set<Long>> companyToNewsIds = new HashMap<>();
+        // 3. keywords 풀어서 stock_master에 있는 것만 종목코드 기준으로 카운팅
+        Map<String, Set<Long>> codeToNewsIds = new HashMap<>();
         for (var extraction : extractions) {
             if (extraction.getKeywords().isEmpty()) {
                 continue;
             }
             for (var keyword : extraction.getKeywords()) {
-                if (stockNames.contains(keyword)) {
-                    companyToNewsIds.computeIfAbsent(keyword, k -> new HashSet<>()).add(extraction.getNewsId());
+                var code = nameToCode.get(keyword);
+                if (code != null) {
+                    codeToNewsIds.computeIfAbsent(code, k -> new HashSet<>()).add(extraction.getNewsId());
                 }
             }
         }
 
-        // 4. 상위 3개만 반환
-        var stocks = companyToNewsIds.entrySet().stream()
+        // 4. 종목코드 → 종목명(short) 매핑
+        Map<String, String> codeToName = new HashMap<>();
+        for (var stock : stockMasterRepository.findAll()) {
+            codeToName.putIfAbsent(stock.getStockCode(), stock.getNameKrShort());
+        }
+
+        // 5. 상위 3개만 반환
+        var stocks = codeToNewsIds.entrySet().stream()
                 .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
                 .limit(TOP_COUNT)
                 .toList();
@@ -88,7 +95,7 @@ public class HotStockService {
         var result = new java.util.ArrayList<HotStock>();
         for (int i = 0; i < stocks.size(); i++) {
             var entry = stocks.get(i);
-            result.add(new HotStock(i + 1, entry.getKey(), entry.getValue().size()));
+            result.add(new HotStock(i + 1, entry.getKey(), codeToName.getOrDefault(entry.getKey(), entry.getKey()), entry.getValue().size()));
         }
 
         return new HotStockResponse(result);

@@ -29,8 +29,8 @@ public class StockTopicsController {
     @ApiResponse(responseCode = "200", description = "클러스터링 결과",
             content = @Content(schema = @Schema(implementation = StockTopicsService.StockTopicsDto.class)))
     public StockTopicsService.StockTopicsDto stockTopics(
-            @Parameter(description = "종목명") @RequestParam String keyword
+            @Parameter(description = "종목코드") @RequestParam String stockCode
     ) {
-        return service.getStockTopics(keyword);
+        return service.getStockTopics(stockCode);
     }
 }

@@ -18,4 +18,8 @@ public interface StockMasterRepository extends JpaRepository<StockMasterEntity, 
             "LOWER(s.nameKr) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(s.nameKrShort) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<StockMasterEntity> searchByQuery(@Param("query") String query, Pageable pageable);
+
+    boolean existsByStockCode(String stockCode);
+
+    List<StockMasterEntity> findByStockCodeIn(List<String> stockCodes);
 }

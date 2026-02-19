@@ -12,17 +12,17 @@ import { useTheme } from "../../src/theme";
 import { useAuth } from "../../lib/auth";
 import { API_BASE_URL } from "../../lib/config";
 
-const STOCK_NAMES = [
-  "삼성전자",
-  "SK하이닉스",
-  "NAVER",
-  "카카오",
-  "현대차",
-  "LG에너지솔루션",
-  "삼성바이오로직스",
-  "셀트리온",
-  "KB금융",
-  "신한지주",
+const STOCK_CODES = [
+  "005930", // 삼성전자
+  "000660", // SK하이닉스
+  "035420", // NAVER
+  "035720", // 카카오
+  "005380", // 현대차
+  "373220", // LG에너지솔루션
+  "207940", // 삼성바이오로직스
+  "068270", // 셀트리온
+  "105560", // KB금융
+  "055550", // 신한지주
 ];
 
 // --- API 응답 타입 (StockTopicsDto 구조) ---
@@ -60,7 +60,8 @@ interface ClusterDto {
 }
 
 interface StockTopicsDto {
-  keyword: string;
+  stock_code: string;
+  stock_name: string;
   total_count: number;
   stock_price: StockPriceDto | null;
   related_stock: RelatedStockDto | null;
@@ -90,7 +91,7 @@ function TimeDisplay() {
 function StockTopicCard({ data }: { data: StockTopicsDto }) {
   const { colors, isDark } = useTheme();
 
-  const headline = data.topic?.title ?? `${data.keyword} 관련 뉴스`;
+  const headline = data.topic?.title ?? `${data.stock_name ?? data.stock_code} 관련 뉴스`;
   const summary = data.topic?.summary;
 
   // 주체 종목 변동률
@@ -148,7 +149,7 @@ function StockTopicCard({ data }: { data: StockTopicsDto }) {
       <View style={[styles.stockReactionArea, { borderTopColor: colors.divider, backgroundColor: colors.surface }]}>
         {/* 주체 종목 */}
         <View style={styles.stockReactionRow}>
-          <Text style={[styles.stockName, { color: colors.text }]}>{data.keyword}</Text>
+          <Text style={[styles.stockName, { color: colors.text }]}>{data.stock_name ?? data.stock_code}</Text>
           <Text style={[styles.stockRole, { color: colors.textFaint }]}>주체</Text>
           <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
             <View style={[styles.reactionBarTrack, { backgroundColor: colors.track }]}>
@@ -235,8 +236,8 @@ export default function FeedTab() {
       headers["Authorization"] = `Bearer ${session.access_token}`;
     }
     const results = await Promise.allSettled(
-      STOCK_NAMES.map((name) =>
-        fetch(`${API_BASE_URL}/api/feed/stock-topics?keyword=${encodeURIComponent(name)}&days=2&eps=0.2`, { headers })
+      STOCK_CODES.map((code) =>
+        fetch(`${API_BASE_URL}/api/feed/stock-topics?stockCode=${code}`, { headers })
           .then((res) => res.json() as Promise<StockTopicsDto>)
       )
     );
@@ -278,7 +279,7 @@ export default function FeedTab() {
         <FlatList
           data={data}
           renderItem={({ item }) => <StockTopicCard data={item} />}
-          keyExtractor={(item) => item.keyword}
+          keyExtractor={(item) => item.stock_code}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 40 }}
         />
       )}

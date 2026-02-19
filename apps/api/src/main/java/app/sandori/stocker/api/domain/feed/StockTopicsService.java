@@ -80,7 +80,8 @@ public class StockTopicsService {
     public record ClusterDto(int count, String time, List<ArticleDto> articles) {}
 
     public record StockTopicsDto(
-            String keyword,
+            @JsonProperty("stock_code") String stockCode,
+            @JsonProperty("stock_name") String stockName,
             @JsonProperty("total_count") int totalCount,
             @JsonProperty("stock_price") StockPriceDto stockPrice,
             @JsonProperty("related_stock") RelatedStockDto relatedStock,
@@ -89,10 +90,10 @@ public class StockTopicsService {
             List<ArticleDto> noise
     ) {}
 
-    public StockTopicsDto getStockTopics(String keyword) {
-        StockClusterResultEntity entity = repository.findFirstByStockNameOrderByClusteredAtDesc(keyword);
+    public StockTopicsDto getStockTopics(String stockCode) {
+        StockClusterResultEntity entity = repository.findFirstByStockCodeOrderByClusteredAtDesc(stockCode);
         if (entity == null) {
-            return new StockTopicsDto(keyword, 0, null, null, null, List.of(), List.of());
+            return new StockTopicsDto(stockCode, null, 0, null, null, null, List.of(), List.of());
         }
 
         RawStockTopicsDto raw;
@@ -140,7 +141,7 @@ public class StockTopicsService {
         List<ArticleDto> enrichedNoise = enrichArticles(raw.noise(), newsMap);
 
         return new StockTopicsDto(
-                raw.keyword(), raw.totalCount(), raw.stockPrice(), raw.relatedStock(),
+                entity.getStockCode(), entity.getStockName(), raw.totalCount(), raw.stockPrice(), raw.relatedStock(),
                 enrichedTopic, enrichedClusters, enrichedNoise
         );
     }

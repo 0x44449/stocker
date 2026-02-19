@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface StockClusterResultRepository extends JpaRepository<StockClusterResultEntity, StockClusterResultId> {
 
     StockClusterResultEntity findFirstByStockNameOrderByClusteredAtDesc(String stockName);
+
+    StockClusterResultEntity findFirstByStockCodeOrderByClusteredAtDesc(String stockCode);
 }
