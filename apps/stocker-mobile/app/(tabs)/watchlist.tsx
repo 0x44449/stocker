@@ -94,14 +94,6 @@ function StockCard({ stock }: { stock: WatchlistStock }) {
         </View>
       </TouchableOpacity>
 
-      {/* 하이라이트 */}
-      {stock.highlight && (
-        <View style={[styles.highlightArea, { borderLeftColor: isUp ? "#DC2626" : "#2563EB" }]}>
-          <Text style={[styles.highlightMain, { color: colors.text }]}>{stock.highlight.main}</Text>
-          <Text style={[styles.highlightSub, { color: colors.textMuted }]} numberOfLines={1}>{stock.highlight.sub}</Text>
-        </View>
-      )}
-
       {/* 클러스터 목록 또는 빈 상태 */}
       {stock.clusters.length === 0 ? (
         <View style={styles.emptyCluster}>
@@ -245,7 +237,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 14,
     gap: 8,
   },
   clusterHeadline: {
