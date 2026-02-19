@@ -6,6 +6,7 @@ export interface ArticleItem {
   source: string;
   time: string;
   url: string;
+  thumbnailUrl?: string;
 }
 
 export interface ClusterItem {
