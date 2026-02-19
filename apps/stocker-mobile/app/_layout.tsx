@@ -64,7 +64,7 @@ export default function RootLayout() {
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="stock-detail" options={{ title: "종목 상세" }} />
+            <Stack.Screen name="stock-detail" options={{ headerShown: false }} />
             <Stack.Screen name="article-list" options={{ headerShown: false }} />
           </Stack>
         </SafeAreaProvider>

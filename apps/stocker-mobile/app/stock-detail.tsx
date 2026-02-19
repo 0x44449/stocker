@@ -4,23 +4,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "../src/theme";
 import { findStockByCode, ClusterItem } from "../src/mock/watchlistMock";
 
-// 카테고리별 뱃지 스타일
-const CATEGORY_STYLES: Record<string, { color: string; bg: string; darkColor: string; darkBg: string }> = {
-  "실적": { color: "#92400E", bg: "#FEF3C7", darkColor: "#FCD34D", darkBg: "#42200680" },
-  "사업": { color: "#1E40AF", bg: "#DBEAFE", darkColor: "#93C5FD", darkBg: "#1E3A5C80" },
-  "규제": { color: "#991B1B", bg: "#FEE2E2", darkColor: "#FCA5A5", darkBg: "#3D202080" },
-  "경영": { color: "#6B21A8", bg: "#F3E8FF", darkColor: "#C4B5FD", darkBg: "#3B1F5680" },
-  "산업": { color: "#3730A3", bg: "#E0E7FF", darkColor: "#A5B4FC", darkBg: "#2D2D4A80" },
-  "기술": { color: "#065F46", bg: "#D1FAE5", darkColor: "#6EE7B7", darkBg: "#064E3B80" },
-};
-
-function getCategoryStyle(category: string, isDark: boolean) {
-  const style = CATEGORY_STYLES[category] ?? CATEGORY_STYLES["사업"];
-  return isDark
-    ? { color: style.darkColor, bg: style.darkBg }
-    : { color: style.color, bg: style.bg };
-}
-
 function formatPrice(price: number): string {
   return price.toLocaleString("ko-KR");
 }
@@ -53,38 +36,26 @@ function TimelineItem({ cluster, isDark, colors, onPress }: {
   colors: any;
   onPress: () => void;
 }) {
-  const catStyle = getCategoryStyle(cluster.category, isDark);
-  const isUp = cluster.changeRate > 0;
-  const dotColor = cluster.changeRate === 0 ? colors.textMuted : isUp ? "#DC2626" : "#2563EB";
-  const rateColor = dotColor;
   const sessionLabel = getSessionLabel(cluster.session, isDark);
 
   return (
     <TouchableOpacity style={styles.timelineItem} onPress={onPress} activeOpacity={0.6}>
       {/* 왼쪽 타임라인 도트 + 선 */}
       <View style={styles.timelineLeft}>
-        <View style={[styles.timelineDot, { backgroundColor: dotColor }]} />
+        <View style={[styles.timelineDot, { backgroundColor: colors.textMuted }]} />
         <View style={[styles.timelineLine, { backgroundColor: colors.divider }]} />
       </View>
 
       {/* 오른쪽 콘텐츠 */}
-      <View style={[styles.timelineContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.timelineContent}>
         <View style={styles.timelineTopRow}>
-          <View style={[styles.categoryBadge, { backgroundColor: catStyle.bg }]}>
-            <Text style={[styles.categoryBadgeText, { color: catStyle.color }]}>{cluster.category}</Text>
-          </View>
           <Text style={[styles.sessionText, { color: sessionLabel.color }]}>{sessionLabel.text}</Text>
           <Text style={[styles.timeText, { color: colors.textFaint }]}>{cluster.time}</Text>
         </View>
         <Text style={[styles.timelineHeadline, { color: colors.text }]}>{cluster.headline}</Text>
-        <View style={styles.timelineBottomRow}>
-          <Text style={[styles.articleCount, { color: colors.textMuted }]}>
-            기사 {cluster.articleCount}건
-          </Text>
-          <Text style={[styles.timelineRate, { color: rateColor }]}>
-            {formatChangeRate(cluster.changeRate)}
-          </Text>
-        </View>
+        <Text style={[styles.articleCount, { color: colors.textMuted }]}>
+          기사 {cluster.articleCount}건
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -100,8 +71,11 @@ export default function StockDetailScreen() {
   if (!stock) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
+        </TouchableOpacity>
         <View style={styles.emptyContainer}>
-          <Text style={{ color: colors.textMuted, fontSize: 14 }}>종목을 찾을 수 없습니다</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 13 }}>종목을 찾을 수 없습니다</Text>
         </View>
       </SafeAreaView>
     );
@@ -110,58 +84,62 @@ export default function StockDetailScreen() {
   const isUp = stock.changeRate > 0;
   const rateColor = stock.changeRate === 0 ? colors.textMuted : isUp ? "#DC2626" : "#2563EB";
 
-  // 클러스터를 시간 역순 (이미 mock에서 역순)
   const sortedClusters = [...stock.clusters];
 
   const goToArticles = (clusterId: string) => {
     router.push({ pathname: "/article-list", params: { clusterId } });
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* 상단 종목 정보 */}
-      <View style={[styles.stockHeader, { borderBottomColor: colors.divider }]}>
-        <View style={styles.stockHeaderTop}>
-          <View>
-            <Text style={[styles.stockName, { color: colors.text }]}>{stock.stockName}</Text>
-            <Text style={[styles.stockCode, { color: colors.textFaint }]}>{stock.stockCode}</Text>
-          </View>
-          <View style={styles.stockHeaderRight}>
-            <Text style={[styles.price, { color: colors.text }]}>{formatPrice(stock.price)}</Text>
-            <View style={styles.changeRow}>
-              <View style={[styles.rateBadge, { backgroundColor: isUp ? "#FEE2E2" : "#DBEAFE" }]}>
-                <Text style={[styles.rateBadgeText, { color: rateColor }]}>
-                  {formatChangeRate(stock.changeRate)}
-                </Text>
-              </View>
-              <Text style={[styles.changeAmount, { color: rateColor }]}>
-                {formatChangeAmount(stock.changeAmount)}
+  const stockHeader = (
+    <View style={styles.stockHeader}>
+      <View style={styles.stockHeaderTop}>
+        <View>
+          <Text style={[styles.stockName, { color: colors.text }]}>{stock.stockName}</Text>
+          <Text style={[styles.stockCode, { color: colors.textFaint }]}>{stock.stockCode}</Text>
+        </View>
+        <View style={styles.stockHeaderRight}>
+          <Text style={[styles.price, { color: colors.text }]}>{formatPrice(stock.price)}</Text>
+          <View style={styles.changeRow}>
+            <View style={[styles.rateBadge, { backgroundColor: isUp ? "#FEE2E2" : "#DBEAFE" }]}>
+              <Text style={[styles.rateBadgeText, { color: rateColor }]}>
+                {formatChangeRate(stock.changeRate)}
               </Text>
             </View>
+            <Text style={[styles.changeAmount, { color: rateColor }]}>
+              {formatChangeAmount(stock.changeAmount)}
+            </Text>
           </View>
         </View>
       </View>
+    </View>
+  );
 
-      {/* 이벤트 타임라인 */}
-      {sortedClusters.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>최근 주요 뉴스가 없습니다</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={sortedClusters}
-          renderItem={({ item }) => (
-            <TimelineItem
-              cluster={item}
-              isDark={isDark}
-              colors={colors}
-              onPress={() => goToArticles(item.clusterId)}
-            />
-          )}
-          keyExtractor={(item) => item.clusterId}
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
-        />
-      )}
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* 고정 헤더: 뒤로가기 */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
+      </TouchableOpacity>
+
+      <FlatList
+        data={sortedClusters}
+        renderItem={({ item }) => (
+          <TimelineItem
+            cluster={item}
+            isDark={isDark}
+            colors={colors}
+            onPress={() => goToArticles(item.clusterId)}
+          />
+        )}
+        keyExtractor={(item) => item.clusterId}
+        ListHeaderComponent={stockHeader}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={{ color: colors.textMuted, fontSize: 13 }}>최근 주요 뉴스가 없습니다</Text>
+          </View>
+        }
+        contentContainerStyle={{ paddingBottom: 40 }}
+      />
     </SafeAreaView>
   );
 }
@@ -176,12 +154,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  // 뒤로가기
+  backButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: "flex-start",
+  },
+  backButtonText: {
+    fontSize: 24,
+  },
+
   // 종목 헤더
   stockHeader: {
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 4,
     paddingBottom: 14,
-    borderBottomWidth: 1,
   },
   stockHeaderTop: {
     flexDirection: "row",
@@ -249,8 +236,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     marginBottom: 12,
-    borderRadius: 12,
-    borderWidth: 1,
     padding: 12,
   },
   timelineTopRow: {
@@ -259,39 +244,21 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 6,
   },
-  categoryBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  categoryBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
   sessionText: {
     fontSize: 10,
     fontWeight: "600",
   },
   timeText: {
-    fontSize: 11,
+    fontSize: 10,
   },
   timelineHeadline: {
-    fontSize: 14,
-    fontWeight: "600",
-    lineHeight: 20,
+    fontSize: 13,
+    fontWeight: "500",
+    lineHeight: 18,
     letterSpacing: -0.2,
-    marginBottom: 8,
-  },
-  timelineBottomRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    marginBottom: 6,
   },
   articleCount: {
-    fontSize: 11,
-  },
-  timelineRate: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 10,
   },
 });
