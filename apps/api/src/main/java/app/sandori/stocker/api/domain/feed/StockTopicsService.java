@@ -5,8 +5,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import app.sandori.stocker.api.entities.NewsRawEntity;
 import app.sandori.stocker.api.entities.StockClusterResultEntity;
+import app.sandori.stocker.api.entities.StockPriceDailyRawEntity;
 import app.sandori.stocker.api.repositories.NewsRawRepository;
 import app.sandori.stocker.api.repositories.StockClusterResultRepository;
+import app.sandori.stocker.api.repositories.StockPriceDailyRawRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,10 +31,13 @@ public class StockTopicsService {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private final StockClusterResultRepository repository;
     private final NewsRawRepository newsRawRepository;
+    private final StockPriceDailyRawRepository priceRepository;
 
-    public StockTopicsService(StockClusterResultRepository repository, NewsRawRepository newsRawRepository) {
+    public StockTopicsService(StockClusterResultRepository repository, NewsRawRepository newsRawRepository,
+                              StockPriceDailyRawRepository priceRepository) {
         this.repository = repository;
         this.newsRawRepository = newsRawRepository;
+        this.priceRepository = priceRepository;
     }
 
     // --- JSONB 역직렬화용 private records ---
@@ -40,11 +45,15 @@ public class StockTopicsService {
     private record RawArticleDto(@JsonProperty("news_id") long newsId, String title) {}
     private record RawTopicDto(String title, String summary, int count, List<RawArticleDto> articles) {}
     private record RawClusterDto(int count, List<RawArticleDto> articles) {}
+    private record RawRelatedStockDto(
+            @JsonProperty("stock_name") String stockName,
+            @JsonProperty("stock_code") String stockCode,
+            @JsonProperty("mention_count") int mentionCount
+    ) {}
     private record RawStockTopicsDto(
             String keyword,
             @JsonProperty("total_count") int totalCount,
-            @JsonProperty("stock_price") StockPriceDto stockPrice,
-            @JsonProperty("related_stock") RelatedStockDto relatedStock,
+            @JsonProperty("related_stock") RawRelatedStockDto relatedStock,
             RawTopicDto topic,
             List<RawClusterDto> clusters,
             List<RawArticleDto> noise
@@ -64,6 +73,7 @@ public class StockTopicsService {
             @JsonProperty("stock_code") String stockCode,
             String date,
             Long close,
+            Long diff,
             @JsonProperty("diff_rate") Double diffRate
     ) {}
 
@@ -72,6 +82,7 @@ public class StockTopicsService {
             @JsonProperty("stock_code") String stockCode,
             @JsonProperty("mention_count") int mentionCount,
             Long close,
+            Long diff,
             @JsonProperty("diff_rate") Double diffRate
     ) {}
 
@@ -140,8 +151,22 @@ public class StockTopicsService {
 
         List<ArticleDto> enrichedNoise = enrichArticles(raw.noise(), newsMap);
 
+        // 주가 정보를 DB에서 직접 조회 (클러스터링 스냅샷 대신 최신 주가 사용)
+        StockPriceDto stockPrice = toStockPriceDto(priceRepository.findFirstByStockCodeOrderByTrdDdDesc(stockCode));
+
+        RelatedStockDto relatedStock = null;
+        if (raw.relatedStock() != null && raw.relatedStock().stockCode() != null) {
+            var relPrice = priceRepository.findFirstByStockCodeOrderByTrdDdDesc(raw.relatedStock().stockCode());
+            relatedStock = new RelatedStockDto(
+                    raw.relatedStock().stockName(), raw.relatedStock().stockCode(), raw.relatedStock().mentionCount(),
+                    relPrice != null ? relPrice.getClose() : null,
+                    relPrice != null ? relPrice.getDiff() : null,
+                    relPrice != null && relPrice.getDiffRate() != null ? relPrice.getDiffRate().doubleValue() : null
+            );
+        }
+
         return new StockTopicsDto(
-                entity.getStockCode(), entity.getStockName(), raw.totalCount(), raw.stockPrice(), raw.relatedStock(),
+                entity.getStockCode(), entity.getStockName(), raw.totalCount(), stockPrice, relatedStock,
                 enrichedTopic, enrichedClusters, enrichedNoise
         );
     }
@@ -155,6 +180,17 @@ public class StockTopicsService {
             }
             return new ArticleDto(a.newsId(), a.title(), null, null, null);
         }).toList();
+    }
+
+    private StockPriceDto toStockPriceDto(StockPriceDailyRawEntity price) {
+        if (price == null) return null;
+        return new StockPriceDto(
+                price.getStockCode(),
+                price.getTrdDd().toString(),
+                price.getClose(),
+                price.getDiff(),
+                price.getDiffRate() != null ? price.getDiffRate().doubleValue() : null
+        );
     }
 
     /** articles 중 가장 빠른 publishedAt을 HH:mm 포맷으로 반환 */
