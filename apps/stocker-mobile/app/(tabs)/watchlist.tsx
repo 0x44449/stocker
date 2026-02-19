@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -86,12 +86,20 @@ function formatChangeAmount(amount: number): string {
 
 // --- 클러스터 행 ---
 
-function ClusterRow({ cluster, colors }: {
+function ClusterRow({ cluster, stockCode, clusterIndex, colors }: {
   cluster: ClusterDisplay;
+  stockCode: string;
+  clusterIndex: number;
   colors: any;
 }) {
+  const router = useRouter();
+
+  const goToArticleList = () => {
+    router.push({ pathname: "/article-list", params: { stockCode, clusterIndex: String(clusterIndex) } });
+  };
+
   return (
-    <View style={styles.clusterRow}>
+    <Pressable style={styles.clusterRow} onPress={goToArticleList}>
       <Text style={[styles.clusterHeadline, { color: colors.text }]} numberOfLines={2}>
         {cluster.headline}
       </Text>
@@ -103,7 +111,7 @@ function ClusterRow({ cluster, colors }: {
           {cluster.articleCount}건
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -168,8 +176,8 @@ function StockCard({ stock }: { stock: WatchlistStock }) {
           <Text style={{ color: colors.textMuted, fontSize: 13 }}>최근 주요 뉴스가 없습니다</Text>
         </View>
       ) : (
-        stock.clusters.slice(0, 3).map((cluster, i) => (
-          <ClusterRow key={i} cluster={cluster} colors={colors} />
+        stock.clusters.slice(0, 10).map((cluster, i) => (
+          <ClusterRow key={i} cluster={cluster} stockCode={stock.stockCode} clusterIndex={i} colors={colors} />
         ))
       )}
     </View>
@@ -404,7 +412,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 10,
     gap: 8,
   },
   clusterHeadline: {

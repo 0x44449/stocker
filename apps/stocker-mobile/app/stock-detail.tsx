@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "../src/theme";
@@ -43,6 +43,7 @@ interface TimelineEntry {
   summary: string | null;
   time: string | null;
   articleCount: number;
+  clusterIndex: number;
 }
 
 // --- 포맷 헬퍼 ---
@@ -63,12 +64,19 @@ function formatChangeAmount(amount: number): string {
 
 // --- 타임라인 항목 ---
 
-function TimelineItem({ entry, colors }: {
+function TimelineItem({ entry, stockCode, colors }: {
   entry: TimelineEntry;
+  stockCode: string;
   colors: any;
 }) {
+  const router = useRouter();
+
+  const goToArticleList = () => {
+    router.push({ pathname: "/article-list", params: { stockCode, clusterIndex: String(entry.clusterIndex) } });
+  };
+
   return (
-    <View style={styles.timelineItem}>
+    <Pressable style={styles.timelineItem} onPress={goToArticleList}>
       {/* 왼쪽 타임라인 도트 + 선 */}
       <View style={styles.timelineLeft}>
         <View style={[styles.timelineDot, { backgroundColor: colors.textMuted }]} />
@@ -92,7 +100,7 @@ function TimelineItem({ entry, colors }: {
           </Text>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -158,7 +166,7 @@ export default function StockDetailScreen() {
   const isUp = (price?.diff_rate ?? 0) > 0;
   const rateColor = price?.diff_rate === 0 || price?.diff_rate == null ? colors.textMuted : isUp ? "#DC2626" : "#2563EB";
 
-  // 타임라인 엔트리 구성 (topic + clusters)
+  // 타임라인 엔트리 구성 (topic=index 0, clusters=index 1+)
   const entries: TimelineEntry[] = [];
   if (data.topic) {
     entries.push({
@@ -166,14 +174,17 @@ export default function StockDetailScreen() {
       summary: data.topic.summary,
       time: data.topic.time,
       articleCount: data.topic.count,
+      clusterIndex: 0,
     });
   }
-  for (const c of data.clusters) {
+  for (let i = 0; i < data.clusters.length; i++) {
+    const c = data.clusters[i];
     entries.push({
       headline: c.title ?? `관련 뉴스 ${c.count}건`,
       summary: null,
       time: c.time,
       articleCount: c.count,
+      clusterIndex: i + 1,
     });
   }
 
@@ -219,7 +230,7 @@ export default function StockDetailScreen() {
 
       <FlatList
         data={entries}
-        renderItem={({ item }) => <TimelineItem entry={item} colors={colors} />}
+        renderItem={({ item }) => <TimelineItem entry={item} stockCode={stockCode!} colors={colors} />}
         keyExtractor={(_, i) => String(i)}
         ListHeaderComponent={stockHeader}
         ListEmptyComponent={

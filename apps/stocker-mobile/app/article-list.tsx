@@ -1,18 +1,91 @@
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Linking, Image } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "../src/theme";
-import { findClusterById, ArticleItem, WatchlistStock, ClusterItem } from "../src/mock/watchlistMock";
+import { useAuth } from "../lib/auth";
+import { API_BASE_URL } from "../lib/config";
+
+// --- API 응답 타입 ---
+
+interface ArticleDto {
+  news_id: number;
+  title: string;
+  press: string | null;
+  url: string | null;
+  published_at: string | null;
+}
+
+interface StockPriceDto {
+  stock_code: string;
+  close: number | null;
+  diff: number | null;
+  diff_rate: number | null;
+}
+
+interface RelatedStockDto {
+  stock_name: string | null;
+  stock_code: string;
+  mention_count: number;
+  close: number | null;
+  diff: number | null;
+  diff_rate: number | null;
+}
+
+interface TopicDto {
+  title: string;
+  summary: string | null;
+  count: number;
+  time: string | null;
+  articles: ArticleDto[];
+}
+
+interface ClusterDto {
+  title: string | null;
+  count: number;
+  time: string | null;
+  articles: ArticleDto[];
+}
+
+interface StockTopicsDto {
+  stock_code: string;
+  stock_name: string;
+  total_count: number;
+  stock_price: StockPriceDto | null;
+  related_stock: RelatedStockDto | null;
+  topic: TopicDto | null;
+  clusters: ClusterDto[];
+}
+
+// --- 화면용 타입 ---
+
+interface ClusterDisplay {
+  headline: string;
+  summary: string | null;
+  time: string | null;
+  articleCount: number;
+  articles: ArticleDto[];
+}
+
+// --- 포맷 헬퍼 ---
 
 function formatChangeRate(rate: number): string {
   const sign = rate > 0 ? "+" : "";
   return `${sign}${rate.toFixed(2)}%`;
 }
 
-// 기사 항목
-function ArticleRow({ article, colors }: { article: ArticleItem; colors: any }) {
+function formatTime(dateStr: string): string {
+  const match = dateStr.match(/T(\d{2}:\d{2})/);
+  return match ? match[1] : dateStr;
+}
+
+// --- 기사 항목 ---
+
+function ArticleRow({ article, colors }: { article: ArticleDto; colors: any }) {
   const handlePress = () => {
-    Linking.openURL(article.url);
+    if (article.url) {
+      Linking.openURL(article.url);
+    }
   };
 
   return (
@@ -20,75 +93,83 @@ function ArticleRow({ article, colors }: { article: ArticleItem; colors: any }) 
       style={styles.articleRow}
       onPress={handlePress}
       activeOpacity={0.6}
+      disabled={!article.url}
     >
-      {/* 썸네일 */}
-      {article.thumbnailUrl ? (
-        <Image source={{ uri: article.thumbnailUrl }} style={[styles.thumbnail, { backgroundColor: colors.surface }]} />
-      ) : (
-        <View style={[styles.thumbnail, { backgroundColor: colors.surface }]} />
-      )}
-
-      {/* 기사 텍스트 */}
       <View style={styles.articleTextArea}>
         <Text style={[styles.articleTitle, { color: colors.text }]} numberOfLines={2}>
           {article.title}
         </Text>
         <View style={styles.articleMeta}>
-          <Text style={[styles.articleSource, { color: colors.textMuted }]}>{article.source}</Text>
-          <Text style={[styles.articleTime, { color: colors.textFaint }]}>{article.time}</Text>
+          {article.press && (
+            <Text style={[styles.articleSource, { color: colors.textMuted }]}>{article.press}</Text>
+          )}
+          {article.published_at && (
+            <Text style={[styles.articleTime, { color: colors.textFaint }]}>{formatTime(article.published_at)}</Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
   );
 }
 
-// 클러스터 헤더 (FlatList ListHeaderComponent)
-function ClusterHeader({ stock, cluster, colors }: {
-  stock: WatchlistStock;
-  cluster: ClusterItem;
+// --- 클러스터 헤더 ---
+
+function ClusterHeaderView({ cluster, stockName, stockPrice, relatedStock, colors }: {
+  cluster: ClusterDisplay;
+  stockName: string;
+  stockPrice: StockPriceDto | null;
+  relatedStock: RelatedStockDto | null;
   colors: any;
 }) {
   return (
     <View style={styles.clusterHeader}>
-        <View style={styles.clusterTopRow}>
+      <View style={styles.clusterTopRow}>
+        {cluster.time && (
           <Text style={[styles.clusterTime, { color: colors.textFaint }]}>{cluster.time}</Text>
-          <Text style={[styles.clusterArticleCount, { color: colors.textMuted }]}>
-            기사 {cluster.articleCount}건
-          </Text>
-        </View>
+        )}
+        <Text style={[styles.clusterArticleCount, { color: colors.textMuted }]}>
+          기사 {cluster.articleCount}건
+        </Text>
+      </View>
 
-        <Text style={[styles.clusterHeadline, { color: colors.text }]}>{cluster.headline}</Text>
+      <Text style={[styles.clusterHeadline, { color: colors.text }]}>{cluster.headline}</Text>
+      {cluster.summary && (
         <Text style={[styles.clusterSummary, { color: colors.textSecondary }]}>{cluster.summary}</Text>
+      )}
 
-        {/* 관련 종목 */}
-        {cluster.relatedStocks.length > 0 && (
-          <View style={[styles.relatedStocksArea, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {/* 관련 종목 */}
+      {(stockPrice?.diff_rate != null || relatedStock?.diff_rate != null) && (
+        <View style={[styles.relatedStocksArea, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {stockPrice?.diff_rate != null && (
             <View style={styles.relatedStockRow}>
-              <Text style={[styles.relatedStockName, { color: colors.text }]}>{stock.stockName}</Text>
+              <Text style={[styles.relatedStockName, { color: colors.text }]}>{stockName}</Text>
               <Text style={[styles.relatedStockRole, { color: colors.textFaint }]}>주체</Text>
               <Text
                 style={[
                   styles.relatedStockRate,
-                  { color: stock.changeRate > 0 ? "#DC2626" : stock.changeRate < 0 ? "#2563EB" : colors.textMuted },
+                  { color: stockPrice.diff_rate > 0 ? "#DC2626" : stockPrice.diff_rate < 0 ? "#2563EB" : colors.textMuted },
                 ]}
               >
-                {formatChangeRate(stock.changeRate)}
+                {formatChangeRate(stockPrice.diff_rate)}
               </Text>
             </View>
-            {cluster.relatedStocks.map((rs) => {
-              const rsRateColor = rs.changeRate > 0 ? "#DC2626" : rs.changeRate < 0 ? "#2563EB" : colors.textMuted;
-              return (
-                <View key={rs.name} style={styles.relatedStockRow}>
-                  <Text style={[styles.relatedStockName, { color: colors.text }]}>{rs.name}</Text>
-                  <Text style={[styles.relatedStockRole, { color: colors.textFaint }]}>{rs.role}</Text>
-                  <Text style={[styles.relatedStockRate, { color: rsRateColor }]}>
-                    {formatChangeRate(rs.changeRate)}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        )}
+          )}
+          {relatedStock?.diff_rate != null && relatedStock.stock_name && (
+            <View style={styles.relatedStockRow}>
+              <Text style={[styles.relatedStockName, { color: colors.text }]}>{relatedStock.stock_name}</Text>
+              <Text style={[styles.relatedStockRole, { color: colors.textFaint }]}>관련</Text>
+              <Text
+                style={[
+                  styles.relatedStockRate,
+                  { color: relatedStock.diff_rate > 0 ? "#DC2626" : relatedStock.diff_rate < 0 ? "#2563EB" : colors.textMuted },
+                ]}
+              >
+                {formatChangeRate(relatedStock.diff_rate)}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -96,11 +177,76 @@ function ClusterHeader({ stock, cluster, colors }: {
 export default function ArticleListScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { clusterId } = useLocalSearchParams<{ clusterId: string }>();
+  const { session } = useAuth();
+  const { stockCode, clusterIndex } = useLocalSearchParams<{ stockCode: string; clusterIndex: string }>();
+  const [cluster, setCluster] = useState<ClusterDisplay | null>(null);
+  const [stockName, setStockName] = useState("");
+  const [stockPrice, setStockPrice] = useState<StockPriceDto | null>(null);
+  const [relatedStock, setRelatedStock] = useState<RelatedStockDto | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const result = findClusterById(clusterId ?? "");
+  useEffect(() => {
+    if (!stockCode) return;
 
-  if (!result) {
+    async function fetchData() {
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/feed/stock-topics?stockCode=${stockCode}`,
+          { headers }
+        );
+        if (!res.ok) return;
+        const data: StockTopicsDto = await res.json();
+
+        setStockName(data.stock_name ?? stockCode);
+        setStockPrice(data.stock_price);
+        setRelatedStock(data.related_stock);
+
+        // clusterIndex=0 → topic, 1+ → clusters[index-1]
+        const idx = parseInt(clusterIndex ?? "0", 10);
+        if (idx === 0 && data.topic) {
+          setCluster({
+            headline: data.topic.title,
+            summary: data.topic.summary,
+            time: data.topic.time,
+            articleCount: data.topic.count,
+            articles: data.topic.articles ?? [],
+          });
+        } else if (idx > 0 && data.clusters && data.clusters[idx - 1]) {
+          const c = data.clusters[idx - 1];
+          setCluster({
+            headline: c.title ?? `관련 뉴스 ${c.count}건`,
+            summary: null,
+            time: c.time,
+            articleCount: c.count,
+            articles: c.articles ?? [],
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [stockCode, clusterIndex]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
+        </TouchableOpacity>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.textMuted} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!cluster) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -113,11 +259,8 @@ export default function ArticleListScreen() {
     );
   }
 
-  const { stock, cluster } = result;
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* 고정 헤더: 뒤로가기 */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
       </TouchableOpacity>
@@ -125,9 +268,20 @@ export default function ArticleListScreen() {
       <FlatList
         data={cluster.articles}
         renderItem={({ item }) => <ArticleRow article={item} colors={colors} />}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.news_id)}
         ListHeaderComponent={
-          <ClusterHeader stock={stock} cluster={cluster} colors={colors} />
+          <ClusterHeaderView
+            cluster={cluster}
+            stockName={stockName}
+            stockPrice={stockPrice}
+            relatedStock={relatedStock}
+            colors={colors}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={{ color: colors.textMuted, fontSize: 13 }}>기사가 없습니다</Text>
+          </View>
         }
         contentContainerStyle={{ paddingBottom: 40 }}
       />
@@ -139,10 +293,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingVertical: 40,
   },
 
   // 뒤로가기
@@ -221,11 +381,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     gap: 12,
-  },
-  thumbnail: {
-    width: 58,
-    height: 58,
-    borderRadius: 8,
   },
   articleTextArea: {
     flex: 1,
