@@ -211,10 +211,19 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
         }
         remaining_clusters = sorted_clusters[1:]
 
-    # 나머지 클러스터에도 LLM 헤드라인 생성
+    # 나머지 클러스터에도 LLM 헤드라인 + 본문 요약 생성
     for cluster in remaining_clusters:
         cluster_titles = [a["title"] for a in cluster["articles"]]
         cluster["title"] = _summarize_topic(cluster_titles, keyword)
+
+        cluster_news_ids = [a["news_id"] for a in cluster["articles"][:5]]
+        raw_texts = (
+            db.query(NewsRaw.id, NewsRaw.raw_text)
+            .filter(NewsRaw.id.in_(cluster_news_ids))
+            .all()
+        )
+        body_list = [row.raw_text for row in raw_texts if row.raw_text]
+        cluster["summary"] = _summarize_body(body_list) if body_list else None
 
     return {
         "keyword": keyword,

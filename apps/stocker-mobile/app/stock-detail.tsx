@@ -23,6 +23,7 @@ interface TopicDto {
 
 interface ClusterDto {
   title: string | null;
+  summary: string | null;
   count: number;
   time: string | null;
 }
@@ -181,7 +182,7 @@ export default function StockDetailScreen() {
     const c = data.clusters[i];
     entries.push({
       headline: c.title ?? `관련 뉴스 ${c.count}건`,
-      summary: null,
+      summary: c.summary,
       time: c.time,
       articleCount: c.count,
       clusterIndex: i + 1,

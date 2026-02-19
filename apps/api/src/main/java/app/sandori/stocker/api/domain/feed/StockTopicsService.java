@@ -45,7 +45,7 @@ public class StockTopicsService {
 
     private record RawArticleDto(@JsonProperty("news_id") long newsId, String title) {}
     private record RawTopicDto(String title, String summary, int count, List<RawArticleDto> articles) {}
-    private record RawClusterDto(String title, int count, List<RawArticleDto> articles) {}
+    private record RawClusterDto(String title, String summary, int count, List<RawArticleDto> articles) {}
     private record RawRelatedStockDto(
             @JsonProperty("stock_name") String stockName,
             @JsonProperty("stock_code") String stockCode,
@@ -89,7 +89,7 @@ public class StockTopicsService {
 
     public record TopicDto(String title, String summary, int count, String time, List<ArticleDto> articles) {}
 
-    public record ClusterDto(String title, int count, String time, List<ArticleDto> articles) {}
+    public record ClusterDto(String title, String summary, int count, String time, List<ArticleDto> articles) {}
 
     public record StockTopicsDto(
             @JsonProperty("stock_code") String stockCode,
@@ -146,7 +146,7 @@ public class StockTopicsService {
                 ? raw.clusters().stream().map(c -> {
                     List<ArticleDto> articles = enrichArticles(c.articles(), newsMap);
                     String time = earliestTime(articles);
-                    return new ClusterDto(c.title(), c.count(), time, articles);
+                    return new ClusterDto(c.title(), c.summary(), c.count(), time, articles);
                 }).toList()
                 : List.of();
 

@@ -42,6 +42,7 @@ interface TopicDto {
 
 interface ClusterDto {
   title: string | null;
+  summary: string | null;
   count: number;
   time: string | null;
   articles: ArticleDto[];
@@ -219,7 +220,7 @@ export default function ArticleListScreen() {
           const c = data.clusters[idx - 1];
           setCluster({
             headline: c.title ?? `관련 뉴스 ${c.count}건`,
-            summary: null,
+            summary: c.summary,
             time: c.time,
             articleCount: c.count,
             articles: c.articles ?? [],
