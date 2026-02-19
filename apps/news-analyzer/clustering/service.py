@@ -12,8 +12,9 @@ from models import NewsExtraction, NewsEmbedding, NewsRaw, StockAlias, Subsidiar
 
 logger = logging.getLogger(__name__)
 
-TOPIC_PROMPT = """아래 뉴스 제목들을 대표하는 뉴스 헤드라인을 하나 만들어줘.
-실제 뉴스 기사 제목처럼 작성해. 다른 설명 없이 헤드라인만 출력해.
+TOPIC_PROMPT = """'{stock_name}' 종목 관점에서 아래 뉴스 제목들을 대표하는 헤드라인을 하나 만들어줘.
+해당 종목과의 연관성을 반영해서 작성해. 실제 뉴스 기사 제목처럼 간결하게 작성해.
+마크다운이나 특수 기호(**, ##, - 등)는 절대 사용하지 마. 다른 설명 없이 헤드라인만 출력해.
 
 제목들:
 {titles}
@@ -28,12 +29,12 @@ SUMMARY_PROMPT = """아래 뉴스 본문들을 읽고 핵심 내용을 2~3줄로
 요약:"""
 
 
-def _summarize_topic(titles: list[str]) -> str:
-    """기사 제목 목록에서 대표 헤드라인 생성"""
+def _summarize_topic(titles: list[str], stock_name: str) -> str:
+    """기사 제목 목록에서 종목 관점의 대표 헤드라인 생성"""
     llm = OllamaLLM(model=LLM_MODEL, base_url=OLLAMA_BASE_URL)
-    prompt = TOPIC_PROMPT.format(titles="\n".join(f"- {t}" for t in titles))
-    result = llm.invoke(prompt).strip()
-    logger.info(f"토픽 요약 완료 - 제목 수: {len(titles)}, 결과: {result}")
+    prompt = TOPIC_PROMPT.format(stock_name=stock_name, titles="\n".join(f"- {t}" for t in titles))
+    result = llm.invoke(prompt).strip().strip("*#").strip()
+    logger.info(f"토픽 요약 완료 - 종목: {stock_name}, 제목 수: {len(titles)}, 결과: {result}")
     return result
 
 
@@ -186,7 +187,7 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
 
     total_count = len(valid_news_ids)
 
-    # 가장 큰 클러스터에 LLM 요약 제목 + 본문 요약 생성
+    # 가장 큰 클러스터 → topic (제목 + 본문 요약), 나머지 → clusters (제목만)
     topic = None
     remaining_clusters = sorted_clusters
     if sorted_clusters:
@@ -203,12 +204,17 @@ def cluster_news(db: Session, keyword: str, days: int, eps: float):
         body_list = [row.raw_text for row in raw_texts if row.raw_text]
 
         topic = {
-            "title": _summarize_topic(topic_titles),
+            "title": _summarize_topic(topic_titles, keyword),
             "summary": _summarize_body(body_list) if body_list else None,
             "count": top["count"],
             "articles": top["articles"],
         }
         remaining_clusters = sorted_clusters[1:]
+
+    # 나머지 클러스터에도 LLM 헤드라인 생성
+    for cluster in remaining_clusters:
+        cluster_titles = [a["title"] for a in cluster["articles"]]
+        cluster["title"] = _summarize_topic(cluster_titles, keyword)
 
     return {
         "keyword": keyword,

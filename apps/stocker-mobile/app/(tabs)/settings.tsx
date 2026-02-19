@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,48 +6,141 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/theme";
-import { ALL_STOCKS } from "../../src/mock/watchlistMock";
+import { useAuth } from "../../lib/auth";
+import { API_BASE_URL } from "../../lib/config";
 
 interface StockEntry {
   stockCode: string;
   stockName: string;
 }
 
-// 초기 관심종목 (mock)
-const INITIAL_WATCHLIST: StockEntry[] = [
-  { stockCode: "005930", stockName: "삼성전자" },
-  { stockCode: "000660", stockName: "SK하이닉스" },
-  { stockCode: "035420", stockName: "NAVER" },
-  { stockCode: "035720", stockName: "카카오" },
-  { stockCode: "005380", stockName: "현대차" },
-];
+// --- API 응답 타입 ---
+
+interface WatchlistItemDto {
+  stockCode: string;
+  stockName: string;
+  sortOrder: number;
+  addedAt: string;
+}
+
+interface WatchlistResponseDto {
+  stocks: WatchlistItemDto[];
+}
+
+interface StockSearchDto {
+  stockCode: string;
+  nameKr: string;
+  nameKrShort: string;
+  market: string;
+}
 
 export default function SettingsTab() {
   const { colors, isDark } = useTheme();
+  const { session } = useAuth();
   const [searchText, setSearchText] = useState("");
-  const [watchlist, setWatchlist] = useState<StockEntry[]>(INITIAL_WATCHLIST);
+  const [watchlist, setWatchlist] = useState<StockEntry[]>([]);
+  const [searchResults, setSearchResults] = useState<StockEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const headers = useCallback((): Record<string, string> => {
+    const h: Record<string, string> = { "Content-Type": "application/json" };
+    if (session?.access_token) {
+      h["Authorization"] = `Bearer ${session.access_token}`;
+    }
+    return h;
+  }, [session]);
+
+  // 관심종목 목록 조회
+  const fetchWatchlist = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/watchlist`, { headers: headers() });
+      if (!res.ok) return;
+      const data: WatchlistResponseDto = await res.json();
+      setWatchlist(data.stocks.map((s) => ({ stockCode: s.stockCode, stockName: s.stockName })));
+    } finally {
+      setLoading(false);
+    }
+  }, [headers]);
+
+  useEffect(() => {
+    fetchWatchlist();
+  }, [fetchWatchlist]);
+
+  // 종목 검색 (API)
+  useEffect(() => {
+    const query = searchText.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/stocks?query=${encodeURIComponent(query)}`,
+          { headers: headers() }
+        );
+        if (!res.ok) return;
+        const data: StockSearchDto[] = await res.json();
+        setSearchResults(
+          data.map((s) => ({ stockCode: s.stockCode, stockName: s.nameKrShort }))
+        );
+      } catch {
+        // 검색 실패 시 무시
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchText, headers]);
 
   const watchlistCodes = new Set(watchlist.map((s) => s.stockCode));
+  const filteredResults = searchResults.filter((s) => !watchlistCodes.has(s.stockCode));
 
-  // 검색 결과 (관심종목에 없는 것만)
-  const searchResults = searchText.trim().length > 0
-    ? ALL_STOCKS.filter(
-        (s) =>
-          !watchlistCodes.has(s.stockCode) &&
-          (s.stockName.includes(searchText) || s.stockCode.includes(searchText))
-      )
-    : [];
-
-  const handleAdd = (stock: StockEntry) => {
-    setWatchlist((prev) => [...prev, stock]);
+  const handleAdd = async (stock: StockEntry) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/watchlist`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ stockCode: stock.stockCode }),
+      });
+      if (res.ok) {
+        setWatchlist((prev) => [...prev, stock]);
+      }
+    } catch {
+      // 추가 실패 시 무시
+    }
   };
 
-  const handleRemove = (stockCode: string) => {
-    setWatchlist((prev) => prev.filter((s) => s.stockCode !== stockCode));
+  const handleRemove = async (stockCode: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/watchlist/${stockCode}`, {
+        method: "DELETE",
+        headers: headers(),
+      });
+      if (res.ok) {
+        setWatchlist((prev) => prev.filter((s) => s.stockCode !== stockCode));
+      }
+    } catch {
+      // 삭제 실패 시 무시
+    }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+        <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>관심종목 설정</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.textMuted} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -80,10 +173,10 @@ export default function SettingsTab() {
         ListHeaderComponent={
           <>
             {/* 검색 결과 */}
-            {searchResults.length > 0 && (
+            {filteredResults.length > 0 && (
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>검색 결과</Text>
-                {searchResults.map((stock) => (
+                {filteredResults.map((stock) => (
                   <View
                     key={stock.stockCode}
                     style={[styles.stockRow, { borderBottomColor: colors.divider }]}
@@ -170,6 +263,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "800",
     letterSpacing: -0.7,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   // 검색

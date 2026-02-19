@@ -1,8 +1,51 @@
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "../src/theme";
-import { findStockByCode, ClusterItem } from "../src/mock/watchlistMock";
+import { useAuth } from "../lib/auth";
+import { API_BASE_URL } from "../lib/config";
+
+// --- API 응답 타입 ---
+
+interface StockPriceDto {
+  close: number | null;
+  diff: number | null;
+  diff_rate: number | null;
+}
+
+interface TopicDto {
+  title: string;
+  summary: string;
+  count: number;
+  time: string | null;
+}
+
+interface ClusterDto {
+  title: string | null;
+  count: number;
+  time: string | null;
+}
+
+interface StockTopicsDto {
+  stock_code: string;
+  stock_name: string;
+  total_count: number;
+  stock_price: StockPriceDto | null;
+  topic: TopicDto | null;
+  clusters: ClusterDto[];
+}
+
+// --- 타임라인 표시용 ---
+
+interface TimelineEntry {
+  headline: string;
+  summary: string | null;
+  time: string | null;
+  articleCount: number;
+}
+
+// --- 포맷 헬퍼 ---
 
 function formatPrice(price: number): string {
   return price.toLocaleString("ko-KR");
@@ -18,28 +61,14 @@ function formatChangeAmount(amount: number): string {
   return `${sign}${amount.toLocaleString("ko-KR")}`;
 }
 
-// 세션 라벨
-function getSessionLabel(session: string, isDark: boolean): { text: string; color: string } {
-  const labels: Record<string, { text: string; light: string; dark: string }> = {
-    pre: { text: "장전", light: "#D97706", dark: "#FBBF24" },
-    open: { text: "장중", light: "#059669", dark: "#34D399" },
-    post: { text: "장후", light: "#6B7280", dark: "#9CA3AF" },
-  };
-  const l = labels[session] ?? labels["open"];
-  return { text: l.text, color: isDark ? l.dark : l.light };
-}
+// --- 타임라인 항목 ---
 
-// 타임라인 항목
-function TimelineItem({ cluster, isDark, colors, onPress }: {
-  cluster: ClusterItem;
-  isDark: boolean;
+function TimelineItem({ entry, colors }: {
+  entry: TimelineEntry;
   colors: any;
-  onPress: () => void;
 }) {
-  const sessionLabel = getSessionLabel(cluster.session, isDark);
-
   return (
-    <TouchableOpacity style={styles.timelineItem} onPress={onPress} activeOpacity={0.6}>
+    <View style={styles.timelineItem}>
       {/* 왼쪽 타임라인 도트 + 선 */}
       <View style={styles.timelineLeft}>
         <View style={[styles.timelineDot, { backgroundColor: colors.textMuted }]} />
@@ -48,27 +77,71 @@ function TimelineItem({ cluster, isDark, colors, onPress }: {
 
       {/* 오른쪽 콘텐츠 */}
       <View style={styles.timelineContent}>
-        <View style={styles.timelineTopRow}>
-          <Text style={[styles.sessionText, { color: sessionLabel.color }]}>{sessionLabel.text}</Text>
-          <Text style={[styles.timeText, { color: colors.textFaint }]}>{cluster.time}</Text>
-        </View>
-        <Text style={[styles.timelineHeadline, { color: colors.text }]}>{cluster.headline}</Text>
-        <Text style={[styles.articleCount, { color: colors.textMuted }]}>
-          기사 {cluster.articleCount}건
-        </Text>
+        {entry.time && (
+          <View style={styles.timelineTopRow}>
+            <Text style={[styles.timeText, { color: colors.textFaint }]}>{entry.time}</Text>
+            <Text style={[styles.articleCount, { color: colors.textMuted }]}>
+              기사 {entry.articleCount}건
+            </Text>
+          </View>
+        )}
+        <Text style={[styles.timelineHeadline, { color: colors.text }]}>{entry.headline}</Text>
+        {entry.summary && (
+          <Text style={[styles.timelineSummary, { color: colors.textMuted }]} numberOfLines={3}>
+            {entry.summary}
+          </Text>
+        )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 export default function StockDetailScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const router = useRouter();
+  const { session } = useAuth();
   const { stockCode } = useLocalSearchParams<{ stockCode: string }>();
+  const [data, setData] = useState<StockTopicsDto | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const stock = findStockByCode(stockCode ?? "");
+  useEffect(() => {
+    if (!stockCode) return;
 
-  if (!stock) {
+    async function fetchData() {
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/feed/stock-topics?stockCode=${stockCode}`,
+          { headers }
+        );
+        if (res.ok) {
+          setData(await res.json());
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [stockCode]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
+        </TouchableOpacity>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.textMuted} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!data) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -81,34 +154,58 @@ export default function StockDetailScreen() {
     );
   }
 
-  const isUp = stock.changeRate > 0;
-  const rateColor = stock.changeRate === 0 ? colors.textMuted : isUp ? "#DC2626" : "#2563EB";
+  const price = data.stock_price;
+  const isUp = (price?.diff_rate ?? 0) > 0;
+  const rateColor = price?.diff_rate === 0 || price?.diff_rate == null ? colors.textMuted : isUp ? "#DC2626" : "#2563EB";
 
-  const sortedClusters = [...stock.clusters];
-
-  const goToArticles = (clusterId: string) => {
-    router.push({ pathname: "/article-list", params: { clusterId } });
-  };
+  // 타임라인 엔트리 구성 (topic + clusters)
+  const entries: TimelineEntry[] = [];
+  if (data.topic) {
+    entries.push({
+      headline: data.topic.title,
+      summary: data.topic.summary,
+      time: data.topic.time,
+      articleCount: data.topic.count,
+    });
+  }
+  for (const c of data.clusters) {
+    entries.push({
+      headline: c.title ?? `관련 뉴스 ${c.count}건`,
+      summary: null,
+      time: c.time,
+      articleCount: c.count,
+    });
+  }
 
   const stockHeader = (
     <View style={styles.stockHeader}>
       <View style={styles.stockHeaderTop}>
         <View>
-          <Text style={[styles.stockName, { color: colors.text }]}>{stock.stockName}</Text>
-          <Text style={[styles.stockCode, { color: colors.textFaint }]}>{stock.stockCode}</Text>
+          <Text style={[styles.stockName, { color: colors.text }]}>{data.stock_name ?? stockCode}</Text>
+          <Text style={[styles.stockCode, { color: colors.textFaint }]}>{data.stock_code}</Text>
         </View>
         <View style={styles.stockHeaderRight}>
-          <Text style={[styles.price, { color: colors.text }]}>{formatPrice(stock.price)}</Text>
-          <View style={styles.changeRow}>
-            <View style={[styles.rateBadge, { backgroundColor: isUp ? "#FEE2E2" : "#DBEAFE" }]}>
-              <Text style={[styles.rateBadgeText, { color: rateColor }]}>
-                {formatChangeRate(stock.changeRate)}
-              </Text>
-            </View>
-            <Text style={[styles.changeAmount, { color: rateColor }]}>
-              {formatChangeAmount(stock.changeAmount)}
-            </Text>
-          </View>
+          {price?.close != null ? (
+            <>
+              <Text style={[styles.price, { color: colors.text }]}>{formatPrice(price.close)}</Text>
+              <View style={styles.changeRow}>
+                {price.diff_rate != null && (
+                  <View style={[styles.rateBadge, { backgroundColor: isUp ? "#FEE2E2" : "#DBEAFE" }]}>
+                    <Text style={[styles.rateBadgeText, { color: rateColor }]}>
+                      {formatChangeRate(price.diff_rate)}
+                    </Text>
+                  </View>
+                )}
+                {price.diff != null && (
+                  <Text style={[styles.changeAmount, { color: rateColor }]}>
+                    {formatChangeAmount(price.diff)}
+                  </Text>
+                )}
+              </View>
+            </>
+          ) : (
+            <Text style={{ color: colors.textMuted, fontSize: 13 }}>-</Text>
+          )}
         </View>
       </View>
     </View>
@@ -116,22 +213,14 @@ export default function StockDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* 고정 헤더: 뒤로가기 */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
       </TouchableOpacity>
 
       <FlatList
-        data={sortedClusters}
-        renderItem={({ item }) => (
-          <TimelineItem
-            cluster={item}
-            isDark={isDark}
-            colors={colors}
-            onPress={() => goToArticles(item.clusterId)}
-          />
-        )}
-        keyExtractor={(item) => item.clusterId}
+        data={entries}
+        renderItem={({ item }) => <TimelineItem entry={item} colors={colors} />}
+        keyExtractor={(_, i) => String(i)}
         ListHeaderComponent={stockHeader}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -147,6 +236,11 @@ export default function StockDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyContainer: {
     flex: 1,
@@ -244,10 +338,6 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 6,
   },
-  sessionText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
   timeText: {
     fontSize: 10,
   },
@@ -257,6 +347,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     letterSpacing: -0.2,
     marginBottom: 6,
+  },
+  timelineSummary: {
+    fontSize: 12,
+    lineHeight: 17,
   },
   articleCount: {
     fontSize: 10,
