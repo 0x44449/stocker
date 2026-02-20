@@ -351,6 +351,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: "800",
+    lineHeight: 36,
     letterSpacing: -0.7,
   },
   headerSub: {

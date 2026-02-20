@@ -12,6 +12,7 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textMuted,
@@ -29,7 +30,7 @@ export default function TabLayout() {
         options={{
           title: "관심종목",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="pulse-outline" size={22} color={color} />
+            <Ionicons name="pulse-outline" size={24} color={color} />
           ),
         }}
       />
@@ -44,7 +45,7 @@ export default function TabLayout() {
         options={{
           title: "설정",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="settings-outline" size={22} color={color} />
+            <Ionicons name="settings-outline" size={24} color={color} />
           ),
         }}
       />

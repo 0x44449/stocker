@@ -131,8 +131,8 @@ export default function SettingsTab() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
-        <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={["top", "left", "right"]}>
+        <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>관심종목 설정</Text>
         </View>
         <View style={styles.loadingContainer}>
@@ -143,13 +143,13 @@ export default function SettingsTab() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={["top", "left", "right"]}>
+      <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>관심종목 설정</Text>
       </View>
 
       {/* 검색 입력 */}
-      <View style={[styles.searchArea, { borderBottomColor: colors.divider }]}>
+      <View style={styles.searchArea}>
         <TextInput
           style={[
             styles.searchInput,
@@ -179,13 +179,13 @@ export default function SettingsTab() {
                 {filteredResults.map((stock) => (
                   <View
                     key={stock.stockCode}
-                    style={[styles.stockRow, { borderBottomColor: colors.divider }]}
+                    style={styles.stockRow}
                   >
                     <View style={styles.stockRowLeft}>
                       <Text style={[styles.stockRowName, { color: colors.text }]}>
                         {stock.stockName}
                       </Text>
-                      <Text style={[styles.stockRowCode, { color: colors.textFaint }]}>
+                      <Text style={[styles.stockRowCode, { color: colors.textTertiary }]}>
                         {stock.stockCode}
                       </Text>
                     </View>
@@ -210,7 +210,7 @@ export default function SettingsTab() {
               </Text>
               {watchlist.length === 0 ? (
                 <View style={styles.emptySection}>
-                  <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 14 }}>
                     관심종목이 없습니다. 검색하여 추가하세요.
                   </Text>
                 </View>
@@ -218,13 +218,13 @@ export default function SettingsTab() {
                 watchlist.map((stock) => (
                   <View
                     key={stock.stockCode}
-                    style={[styles.stockRow, { borderBottomColor: colors.divider }]}
+                    style={styles.stockRow}
                   >
                     <View style={styles.stockRowLeft}>
                       <Text style={[styles.stockRowName, { color: colors.text }]}>
                         {stock.stockName}
                       </Text>
-                      <Text style={[styles.stockRowCode, { color: colors.textFaint }]}>
+                      <Text style={[styles.stockRowCode, { color: colors.textTertiary }]}>
                         {stock.stockCode}
                       </Text>
                     </View>
@@ -254,14 +254,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 10,
-    borderBottomWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: "800",
+    lineHeight: 36,
     letterSpacing: -0.7,
   },
   loadingContainer: {
@@ -274,13 +277,12 @@ const styles = StyleSheet.create({
   searchArea: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: 1,
   },
   searchInput: {
     height: 40,
     borderRadius: 10,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     fontSize: 14,
   },
 
@@ -291,7 +293,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: "600",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -305,20 +307,19 @@ const styles = StyleSheet.create({
   stockRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
   },
   stockRowLeft: {
     flex: 1,
   },
   stockRowName: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     letterSpacing: -0.2,
   },
   stockRowCode: {
-    fontSize: 11,
+    fontSize: 14,
     marginTop: 2,
   },
 
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
   },
   removeButton: {
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   removeButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
   },
 });
