@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 
 export default function TabLayout() {
@@ -15,6 +15,7 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textMuted,
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
@@ -22,7 +23,7 @@ export default function TabLayout() {
         options={{
           title: "피드",
           tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>📰</Text>
+            <Ionicons name="reader-outline" size={22} color={color} />
           ),
         }}
       />
@@ -31,17 +32,14 @@ export default function TabLayout() {
         options={{
           title: "관심종목",
           tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>⭐</Text>
+            <Ionicons name="pulse-outline" size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="sample"
         options={{
-          title: "샘플",
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>🧪</Text>
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -49,7 +47,7 @@ export default function TabLayout() {
         options={{
           title: "설정",
           tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>⚙️</Text>
+            <Ionicons name="settings-outline" size={22} color={color} />
           ),
         }}
       />
