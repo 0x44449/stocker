@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "../src/theme";
@@ -75,9 +76,15 @@ function formatChangeRate(rate: number): string {
   return `${sign}${rate.toFixed(2)}%`;
 }
 
-function formatTime(dateStr: string): string {
-  const match = dateStr.match(/T(\d{2}:\d{2})/);
-  return match ? match[1] : dateStr;
+function formatTime(timeStr: string): string {
+  // "HH:mm" 또는 "...THH:mm..." 형식 모두 처리
+  const match = timeStr.match(/(\d{2}):(\d{2})/);
+  if (!match) return timeStr;
+  const h = parseInt(match[1], 10);
+  const mm = match[2];
+  const period = h < 12 ? "오전" : "오후";
+  const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${period} ${displayH}:${mm}`;
 }
 
 // --- 기사 항목 ---
@@ -102,10 +109,10 @@ function ArticleRow({ article, colors }: { article: ArticleDto; colors: any }) {
         </Text>
         <View style={styles.articleMeta}>
           {article.press && (
-            <Text style={[styles.articleSource, { color: colors.textMuted }]}>{article.press}</Text>
+            <Text style={[styles.articleSource, { color: colors.textTertiary }]}>{article.press}</Text>
           )}
           {article.published_at && (
-            <Text style={[styles.articleTime, { color: colors.textFaint }]}>{formatTime(article.published_at)}</Text>
+            <Text style={[styles.articleTime, { color: colors.textTertiary }]}>{formatTime(article.published_at)}</Text>
           )}
         </View>
       </View>
@@ -126,16 +133,16 @@ function ClusterHeaderView({ cluster, stockName, stockPrice, relatedStock, color
     <View style={styles.clusterHeader}>
       <View style={styles.clusterTopRow}>
         {cluster.time && (
-          <Text style={[styles.clusterTime, { color: colors.textFaint }]}>{cluster.time}</Text>
+          <Text style={[styles.clusterTime, { color: colors.textTertiary }]}>{cluster.time}</Text>
         )}
-        <Text style={[styles.clusterArticleCount, { color: colors.textMuted }]}>
+        <Text style={[styles.clusterArticleCount, { color: colors.textTertiary }]}>
           기사 {cluster.articleCount}건
         </Text>
       </View>
 
       <Text style={[styles.clusterHeadline, { color: colors.text }]}>{cluster.headline}</Text>
       {cluster.summary && (
-        <Text style={[styles.clusterSummary, { color: colors.textSecondary }]}>{cluster.summary}</Text>
+        <Text style={[styles.clusterSummary, { color: colors.textTertiary }]}>{cluster.summary}</Text>
       )}
 
       {/* 관련 종목 */}
@@ -144,11 +151,11 @@ function ClusterHeaderView({ cluster, stockName, stockPrice, relatedStock, color
           {stockPrice?.diff_rate != null && (
             <View style={styles.relatedStockRow}>
               <Text style={[styles.relatedStockName, { color: colors.text }]}>{stockName}</Text>
-              <Text style={[styles.relatedStockRole, { color: colors.textFaint }]}>주체</Text>
+              <Text style={[styles.relatedStockRole, { color: colors.textTertiary }]}>주체</Text>
               <Text
                 style={[
                   styles.relatedStockRate,
-                  { color: stockPrice.diff_rate > 0 ? "#DC2626" : stockPrice.diff_rate < 0 ? "#2563EB" : colors.textMuted },
+                  { color: stockPrice.diff_rate > 0 ? "#E53935" : stockPrice.diff_rate < 0 ? "#1E88E5" : colors.textMuted },
                 ]}
               >
                 {formatChangeRate(stockPrice.diff_rate)}
@@ -158,11 +165,11 @@ function ClusterHeaderView({ cluster, stockName, stockPrice, relatedStock, color
           {relatedStock?.diff_rate != null && relatedStock.stock_name && (
             <View style={styles.relatedStockRow}>
               <Text style={[styles.relatedStockName, { color: colors.text }]}>{relatedStock.stock_name}</Text>
-              <Text style={[styles.relatedStockRole, { color: colors.textFaint }]}>관련</Text>
+              <Text style={[styles.relatedStockRole, { color: colors.textTertiary }]}>관련</Text>
               <Text
                 style={[
                   styles.relatedStockRate,
-                  { color: relatedStock.diff_rate > 0 ? "#DC2626" : relatedStock.diff_rate < 0 ? "#2563EB" : colors.textMuted },
+                  { color: relatedStock.diff_rate > 0 ? "#E53935" : relatedStock.diff_rate < 0 ? "#1E88E5" : colors.textMuted },
                 ]}
               >
                 {formatChangeRate(relatedStock.diff_rate)}
@@ -238,7 +245,7 @@ export default function ArticleListScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.textMuted} />
@@ -251,10 +258,10 @@ export default function ArticleListScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.emptyContainer}>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>클러스터를 찾을 수 없습니다</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 14 }}>클러스터를 찾을 수 없습니다</Text>
         </View>
       </SafeAreaView>
     );
@@ -263,7 +270,7 @@ export default function ArticleListScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={[styles.backButtonText, { color: colors.text }]}>{"←"}</Text>
+        <Ionicons name="chevron-back" size={28} color={colors.text} />
       </TouchableOpacity>
 
       <FlatList
@@ -281,7 +288,7 @@ export default function ArticleListScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={{ color: colors.textMuted, fontSize: 13 }}>기사가 없습니다</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 14 }}>기사가 없습니다</Text>
           </View>
         }
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -309,16 +316,14 @@ const styles = StyleSheet.create({
   // 뒤로가기
   backButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 12,
+    paddingBottom: 10,
     alignSelf: "flex-start",
-  },
-  backButtonText: {
-    fontSize: 24,
   },
 
   // 클러스터 헤더
   clusterHeader: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 14,
   },
@@ -329,21 +334,21 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   clusterTime: {
-    fontSize: 10,
+    fontSize: 12,
   },
   clusterArticleCount: {
-    fontSize: 10,
+    fontSize: 12,
   },
   clusterHeadline: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "700",
-    lineHeight: 22,
+    lineHeight: 28,
     letterSpacing: -0.3,
     marginBottom: 6,
   },
   clusterSummary: {
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     marginBottom: 10,
   },
 
@@ -360,16 +365,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   relatedStockName: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
     width: 80,
   },
   relatedStockRole: {
-    fontSize: 10,
+    fontSize: 12,
     width: 52,
   },
   relatedStockRate: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "700",
     flex: 1,
     textAlign: "right",
@@ -379,7 +384,7 @@ const styles = StyleSheet.create({
   articleRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
   },
@@ -387,9 +392,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   articleTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "500",
-    lineHeight: 18,
+    lineHeight: 20,
     letterSpacing: -0.2,
     marginBottom: 4,
   },
@@ -399,10 +404,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   articleSource: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "500",
   },
   articleTime: {
-    fontSize: 10,
+    fontSize: 12,
   },
 });

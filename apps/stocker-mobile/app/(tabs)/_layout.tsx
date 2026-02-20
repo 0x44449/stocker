@@ -21,10 +21,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "피드",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="reader-outline" size={22} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
