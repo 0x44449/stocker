@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, SectionList, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from "react-native";
+import { View, Text, SectionList, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -28,11 +28,21 @@ interface StockPriceDto {
   diff_rate: number | null;
 }
 
+interface ArticleDto {
+  news_id: number;
+  title: string;
+  press: string;
+  url: string;
+  image_url: string | null;
+  published_at: string;
+}
+
 interface TopicDto {
   title: string;
   summary: string;
   count: number;
   time: string | null;
+  articles: ArticleDto[];
 }
 
 interface ClusterDto {
@@ -40,6 +50,7 @@ interface ClusterDto {
   summary: string | null;
   count: number;
   time: string | null;
+  articles: ArticleDto[];
 }
 
 interface StockTopicsDto {
@@ -57,7 +68,9 @@ interface ClusterDisplay {
   headline: string;
   summary: string | null;
   time: string | null;
+  date: string | null;
   articleCount: number;
+  imageUrl: string | null;
 }
 
 interface WatchlistStock {
@@ -97,6 +110,23 @@ function formatTime(time: string): string {
   const period = h < 12 ? "오전" : "오후";
   const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return `${period} ${displayH}:${mStr}`;
+}
+
+// articles에서 가장 빠른 published_at의 날짜를 "MM-DD" 형식으로 추출. 오늘이면 null 반환
+function extractDate(articles: ArticleDto[]): string | null {
+  const earliest = articles
+    ?.filter(a => a.published_at)
+    .map(a => a.published_at)
+    .sort()[0];
+  if (!earliest) return null;
+  const date = earliest.substring(0, 10); // "yyyy-MM-dd"
+  const today = new Date().toISOString().substring(0, 10);
+  if (date === today) return null;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().substring(0, 10);
+  if (date === yesterday) return "어제";
+  // "MM/DD"
+  const [m, d] = date.substring(5).split("-");
+  return `${m}/${d}`;
 }
 
 // --- 섹션 헤더 (종목 정보) ---
@@ -155,25 +185,32 @@ function ClusterRow({ cluster, stockCode, clusterIndex, colors }: {
     router.push({ pathname: "/article-list", params: { stockCode, clusterIndex: String(clusterIndex) } });
   };
 
+  const imageUri = cluster.imageUrl ? `${API_BASE_URL}${cluster.imageUrl}` : null;
+
+  // 메타 텍스트 조합: "어제 오전 10:30 3건"
+  const metaParts: string[] = [];
+  if (cluster.date) metaParts.push(cluster.date);
+  if (cluster.time) metaParts.push(formatTime(cluster.time));
+  metaParts.push(`${cluster.articleCount}건`);
+  const metaText = metaParts.join(" ");
+
   return (
     <Pressable style={styles.clusterRow} onPress={goToArticleList}>
-      <View style={styles.clusterContent}>
-        <Text style={[styles.clusterHeadline, { color: colors.text }]} numberOfLines={2}>
-          {cluster.headline}
-        </Text>
-        {cluster.summary && (
-          <Text style={[styles.clusterSummary, { color: colors.textTertiary }]} numberOfLines={3}>
-            {cluster.summary}
+      <View style={styles.clusterBody}>
+        {imageUri && (
+          <Image source={{ uri: imageUri }} style={styles.clusterImage} />
+        )}
+        <View style={styles.clusterContent}>
+          <Text style={[styles.clusterHeadline, { color: colors.text }]} numberOfLines={2}>
+            {cluster.headline}
           </Text>
-        )}
-      </View>
-      <View style={styles.clusterMeta}>
-        {cluster.time && (
-          <Text style={[styles.clusterTime, { color: colors.textTertiary }]}>{formatTime(cluster.time)}</Text>
-        )}
-        <Text style={[styles.clusterArticleCount, { color: colors.textTertiary }]}>
-          {cluster.articleCount}건
-        </Text>
+          <Text style={[styles.clusterMeta, { color: colors.textTertiary }]}>{metaText}</Text>
+          {cluster.summary && (
+            <Text style={[styles.clusterSummary, { color: colors.textTertiary }]} numberOfLines={3}>
+              {cluster.summary}
+            </Text>
+          )}
+        </View>
       </View>
     </Pressable>
   );
@@ -242,20 +279,26 @@ export default function WatchlistTab() {
 
       const clusters: ClusterDisplay[] = [];
       if (topics?.topic) {
+        const firstImage = topics.topic.articles?.find(a => a.image_url)?.image_url ?? null;
         clusters.push({
           headline: topics.topic.title,
           summary: topics.topic.summary ?? null,
           time: topics.topic.time,
+          date: extractDate(topics.topic.articles ?? []),
           articleCount: topics.topic.count,
+          imageUrl: firstImage,
         });
       }
       if (topics?.clusters) {
         for (const c of topics.clusters) {
+          const firstImage = c.articles?.find(a => a.image_url)?.image_url ?? null;
           clusters.push({
             headline: c.title ?? `관련 뉴스 ${c.count}건`,
             summary: c.summary ?? null,
             time: c.time,
+            date: extractDate(c.articles ?? []),
             articleCount: c.count,
+            imageUrl: firstImage,
           });
         }
       }
@@ -411,11 +454,19 @@ const styles = StyleSheet.create({
 
   // 클러스터 행
   clusterRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 16,
+  },
+  clusterBody: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  clusterImage: {
+    width: 90,
+    height: 65,
+    borderRadius: 6,
+    backgroundColor: "#E0E0E0",
   },
   clusterContent: {
     flex: 1,
@@ -430,14 +481,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   clusterMeta: {
-    alignItems: "flex-end",
-    justifyContent: "flex-end",
-    gap: 2,
-  },
-  clusterTime: {
-    fontSize: 12,
-  },
-  clusterArticleCount: {
     fontSize: 12,
   },
 

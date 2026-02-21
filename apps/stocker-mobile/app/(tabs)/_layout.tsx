@@ -7,6 +7,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="watchlist"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -32,12 +33,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="pulse-outline" size={24} color={color} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="sample"
-        options={{
-          href: null,
         }}
       />
       <Tabs.Screen

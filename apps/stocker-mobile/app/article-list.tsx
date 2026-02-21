@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Linking, ActivityIndicator, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -14,6 +14,7 @@ interface ArticleDto {
   title: string;
   press: string | null;
   url: string | null;
+  image_url: string | null;
   published_at: string | null;
 }
 
@@ -84,7 +85,20 @@ function formatTime(timeStr: string): string {
   const mm = match[2];
   const period = h < 12 ? "오전" : "오후";
   const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${period} ${displayH}:${mm}`;
+  const time = `${period} ${displayH}:${mm}`;
+
+  // 날짜 부분 추출 ("yyyy-MM-dd..." 형식인 경우)
+  const dateMatch = timeStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!dateMatch) return time;
+
+  const date = dateMatch[0];
+  const today = new Date().toISOString().substring(0, 10);
+  if (date === today) return time;
+
+  const yesterday = new Date(Date.now() - 86400000).toISOString().substring(0, 10);
+  if (date === yesterday) return `어제 ${time}`;
+
+  return `${dateMatch[2]}/${dateMatch[3]} ${time}`;
 }
 
 // --- 기사 항목 ---
@@ -96,6 +110,8 @@ function ArticleRow({ article, colors }: { article: ArticleDto; colors: any }) {
     }
   };
 
+  const imageUri = article.image_url ? `${API_BASE_URL}${article.image_url}` : null;
+
   return (
     <TouchableOpacity
       style={styles.articleRow}
@@ -103,6 +119,9 @@ function ArticleRow({ article, colors }: { article: ArticleDto; colors: any }) {
       activeOpacity={0.6}
       disabled={!article.url}
     >
+      {imageUri && (
+        <Image source={{ uri: imageUri }} style={styles.articleImage} />
+      )}
       <View style={styles.articleTextArea}>
         <Text style={[styles.articleTitle, { color: colors.text }]} numberOfLines={2}>
           {article.title}
@@ -387,6 +406,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
+  },
+  articleImage: {
+    width: 90,
+    height: 65,
+    borderRadius: 6,
+    backgroundColor: "#E0E0E0",
   },
   articleTextArea: {
     flex: 1,
