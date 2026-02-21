@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
   },
   clusterBody: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
   },
   clusterImage: {
