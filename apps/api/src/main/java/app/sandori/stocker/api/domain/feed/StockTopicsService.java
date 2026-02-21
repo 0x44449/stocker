@@ -67,6 +67,7 @@ public class StockTopicsService {
             String title,
             String press,
             String url,
+            @JsonProperty("image_url") String imageUrl,
             @JsonProperty("published_at") LocalDateTime publishedAt
     ) {}
 
@@ -177,9 +178,10 @@ public class StockTopicsService {
         return rawArticles.stream().map(a -> {
             NewsRawEntity news = newsMap.get(a.newsId());
             if (news != null) {
-                return new ArticleDto(a.newsId(), a.title(), news.getPress(), news.getUrl(), news.getPublishedAt());
+                String imageUrl = news.getImageKey() != null ? "/api/images/" + news.getImageKey() : null;
+                return new ArticleDto(a.newsId(), a.title(), news.getPress(), news.getUrl(), imageUrl, news.getPublishedAt());
             }
-            return new ArticleDto(a.newsId(), a.title(), null, null, null);
+            return new ArticleDto(a.newsId(), a.title(), null, null, null, null);
         }).toList();
     }
 

@@ -24,5 +24,11 @@ analyzer:
 supabase:
   url: ${SUPABASE_URL:}
 
+minio:
+  endpoint: ${MINIO_ENDPOINT:}
+  access-key: ${MINIO_ACCESS_KEY:stocker}
+  secret-key: ${MINIO_SECRET_KEY:stocker123}
+  bucket: ${MINIO_BUCKET:stocker-images}
+
 server:
   forward-headers-strategy: framework
