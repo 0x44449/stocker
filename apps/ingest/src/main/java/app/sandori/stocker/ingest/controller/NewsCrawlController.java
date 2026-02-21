@@ -3,8 +3,10 @@ package app.sandori.stocker.ingest.controller;
 import app.sandori.stocker.ingest.news.NewsCrawlEngine;
 import app.sandori.stocker.ingest.news.NewsCrawlLock;
 import app.sandori.stocker.ingest.news.provider.ProviderRegistry;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -46,6 +48,23 @@ public class NewsCrawlController {
         });
 
         return new CrawlTriggerResponse("started", providerId);
+    }
+
+    @PostMapping("/backfill-images")
+    public CrawlTriggerResponse backfillImages(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        if (!crawlLock.tryLock("backfill-images")) {
+            return new CrawlTriggerResponse("already_running", "backfill-images");
+        }
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                engine.backfillImages(date);
+            } finally {
+                crawlLock.unlock("backfill-images");
+            }
+        });
+
+        return new CrawlTriggerResponse("started", "backfill-images");
     }
 
     @GetMapping("/status")

@@ -4,6 +4,7 @@ import app.sandori.stocker.ingest.entities.NewsRawEntity;
 import app.sandori.stocker.ingest.repositories.NewsRawRepository;
 import app.sandori.stocker.ingest.news.provider.NewsProvider;
 import app.sandori.stocker.ingest.news.provider.ParsedArticle;
+import app.sandori.stocker.ingest.news.provider.ProviderRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -18,7 +19,9 @@ import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,12 +34,15 @@ public class NewsCrawlEngine {
     private final NewsCrawlConfig config;
     private final NewsRawRepository repository;
     private final ImageStorageClient imageStorageClient;
+    private final ProviderRegistry providerRegistry;
     private final RestClient restClient;
 
-    public NewsCrawlEngine(NewsCrawlConfig config, NewsRawRepository repository, ImageStorageClient imageStorageClient) {
+    public NewsCrawlEngine(NewsCrawlConfig config, NewsRawRepository repository,
+                           ImageStorageClient imageStorageClient, ProviderRegistry providerRegistry) {
         this.config = config;
         this.repository = repository;
         this.imageStorageClient = imageStorageClient;
+        this.providerRegistry = providerRegistry;
         this.restClient = RestClient.builder()
                 .defaultHeader(HttpHeaders.USER_AGENT, config.getUserAgent())
                 .build();
@@ -113,6 +119,63 @@ public class NewsCrawlEngine {
         }
 
         log.info("[{}] 크롤링 종료: 수집={}건, 저장={}건, 스킵={}건", provider.id(), articleUrls.size(), savedCount, skippedCount);
+    }
+
+    /**
+     * 특정 날짜의 image_key가 없는 기사들을 다시 방문하여 이미지만 백필한다.
+     */
+    public void backfillImages(LocalDate date) {
+        LocalDateTime from = date.atStartOfDay();
+        LocalDateTime to = date.atTime(LocalTime.MAX);
+
+        List<NewsRawEntity> articles = repository.findByPublishedAtBetweenAndImageKeyIsNull(from, to);
+        log.info("[backfill-images] 대상 기사: {}건 ({})", articles.size(), date);
+
+        if (!imageStorageClient.isEnabled()) {
+            log.warn("[backfill-images] MinIO 비활성화 상태 - 중단");
+            return;
+        }
+
+        int updatedCount = 0;
+        for (int i = 0; i < articles.size(); i++) {
+            NewsRawEntity entity = articles.get(i);
+
+            try {
+                var provider = providerRegistry.get(entity.getSource());
+                if (provider.isEmpty()) {
+                    log.debug("[backfill-images] provider 없음: source={}, url={}", entity.getSource(), entity.getUrl());
+                    continue;
+                }
+
+                if (i > 0) {
+                    sleep(config.getDelaySeconds());
+                }
+
+                String html = fetchHtml(entity.getUrl());
+                if (html == null) {
+                    log.debug("[backfill-images] HTML 가져오기 실패: {}", entity.getUrl());
+                    continue;
+                }
+
+                ParsedArticle parsed = provider.get().parseArticle(html, entity.getUrl());
+                if (parsed == null || parsed.imageUrl() == null) {
+                    log.debug("[backfill-images] 이미지 URL 없음: {}", entity.getUrl());
+                    continue;
+                }
+
+                String imageKey = downloadAndUploadImage(entity.getSource(), parsed.imageUrl());
+                if (imageKey != null) {
+                    entity.setImageKey(imageKey);
+                    repository.save(entity);
+                    updatedCount++;
+                    log.debug("[backfill-images] 이미지 저장 완료: {}", entity.getUrl());
+                }
+            } catch (Exception e) {
+                log.debug("[backfill-images] 처리 실패, 스킵: url={}, error={}", entity.getUrl(), e.getMessage());
+            }
+        }
+
+        log.info("[backfill-images] 완료: 대상={}건, 업데이트={}건 ({})", articles.size(), updatedCount, date);
     }
 
     /**
