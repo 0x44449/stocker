@@ -1,0 +1,1 @@
+ALTER TABLE news_raw ADD COLUMN image_key VARCHAR(500);

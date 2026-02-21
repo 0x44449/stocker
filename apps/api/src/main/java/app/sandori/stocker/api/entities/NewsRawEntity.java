@@ -41,6 +41,9 @@ public class NewsRawEntity {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
+    @Column(name = "image_key", length = 500)
+    private String imageKey;
+
     public Long getId() {
         return id;
     }
@@ -111,5 +114,13 @@ public class NewsRawEntity {
 
     public void setExpiresAt(LocalDateTime expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    public String getImageKey() {
+        return imageKey;
+    }
+
+    public void setImageKey(String imageKey) {
+        this.imageKey = imageKey;
     }
 }

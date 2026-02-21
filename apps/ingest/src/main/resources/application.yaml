@@ -22,6 +22,10 @@ crawler:
     user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     delay-seconds: 2
     raw-retention-days: 30
+    minio-endpoint: ${MINIO_ENDPOINT:http://localhost:29000}
+    minio-access-key: ${MINIO_ACCESS_KEY:stocker}
+    minio-secret-key: ${MINIO_SECRET_KEY:stocker123}
+    minio-bucket: ${MINIO_BUCKET:stocker-images}
 
 krx:
   username: ${KRX_USERNAME:}

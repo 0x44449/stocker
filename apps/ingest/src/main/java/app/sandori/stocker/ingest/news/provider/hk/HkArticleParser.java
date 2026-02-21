@@ -20,6 +20,8 @@ public class HkArticleParser {
         Document doc = Jsoup.parse(html);
 
         String title = extractTitle(doc);
+        String imageUrl = extractImageUrl(doc);
+        // extractRawText가 DOM을 변경하므로 이미지 추출 후 호출
         String rawText = extractRawText(doc);
         LocalDateTime publishedAt = extractPublishedAt(doc);
 
@@ -27,7 +29,7 @@ public class HkArticleParser {
             return null;
         }
 
-        return new ParsedArticle(title, rawText, PRESS_NAME, publishedAt);
+        return new ParsedArticle(title, rawText, PRESS_NAME, publishedAt, imageUrl);
     }
 
     private String extractTitle(Document doc) {
@@ -48,6 +50,40 @@ public class HkArticleParser {
 
         // 3. fallback to title tag
         return doc.title();
+    }
+
+    private String extractImageUrl(Document doc) {
+        // 1. og:image
+        Element ogImage = doc.selectFirst("meta[property=og:image]");
+        if (ogImage != null) {
+            String content = ogImage.attr("content");
+            if (!content.isBlank()) {
+                return content;
+            }
+        }
+
+        // 2. twitter:image
+        Element twitterImage = doc.selectFirst("meta[name=twitter:image], meta[property=twitter:image]");
+        if (twitterImage != null) {
+            String content = twitterImage.attr("content");
+            if (!content.isBlank()) {
+                return content;
+            }
+        }
+
+        // 3. 본문 영역 첫 img
+        Element article = doc.selectFirst("div.article-body, div#articletxt, div.article-content, article");
+        if (article != null) {
+            Element img = article.selectFirst("img[src]");
+            if (img != null) {
+                String src = img.attr("abs:src");
+                if (!src.isBlank()) {
+                    return src;
+                }
+            }
+        }
+
+        return null;
     }
 
     private String extractRawText(Document doc) {

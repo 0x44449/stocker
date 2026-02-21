@@ -6,5 +6,6 @@ public record ParsedArticle(
         String title,
         String rawText,
         String press,
-        LocalDateTime publishedAt
+        LocalDateTime publishedAt,
+        String imageUrl
 ) {}

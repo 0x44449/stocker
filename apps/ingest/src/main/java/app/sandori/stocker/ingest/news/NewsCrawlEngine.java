@@ -7,6 +7,8 @@ import app.sandori.stocker.ingest.news.provider.ParsedArticle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.w3c.dom.Document;
@@ -28,11 +30,13 @@ public class NewsCrawlEngine {
 
     private final NewsCrawlConfig config;
     private final NewsRawRepository repository;
+    private final ImageStorageClient imageStorageClient;
     private final RestClient restClient;
 
-    public NewsCrawlEngine(NewsCrawlConfig config, NewsRawRepository repository) {
+    public NewsCrawlEngine(NewsCrawlConfig config, NewsRawRepository repository, ImageStorageClient imageStorageClient) {
         this.config = config;
         this.repository = repository;
+        this.imageStorageClient = imageStorageClient;
         this.restClient = RestClient.builder()
                 .defaultHeader(HttpHeaders.USER_AGENT, config.getUserAgent())
                 .build();
@@ -87,6 +91,12 @@ public class NewsCrawlEngine {
 
             String rawText = article.rawText();
 
+            // 이미지 다운로드 → MinIO 업로드
+            String imageKey = null;
+            if (article.imageUrl() != null && imageStorageClient.isEnabled()) {
+                imageKey = downloadAndUploadImage(provider.id(), article.imageUrl());
+            }
+
             NewsRawEntity entity = new NewsRawEntity();
             entity.setSource(provider.id());
             entity.setPress(provider.press());
@@ -96,12 +106,44 @@ public class NewsCrawlEngine {
             entity.setPublishedAt(article.publishedAt());
             entity.setCollectedAt(LocalDateTime.now());
             entity.setExpiresAt(LocalDateTime.now().plusDays(config.getRawRetentionDays()));
+            entity.setImageKey(imageKey);
             repository.save(entity);
             savedCount++;
             log.debug("[{}] 저장 완료: {}", provider.id(), url);
         }
 
         log.info("[{}] 크롤링 종료: 수집={}건, 저장={}건, 스킵={}건", provider.id(), articleUrls.size(), savedCount, skippedCount);
+    }
+
+    /**
+     * 이미지를 다운로드하여 MinIO에 업로드한다.
+     * 실패 시 null 반환 (기사 저장에는 영향 없음).
+     */
+    private String downloadAndUploadImage(String source, String imageUrl) {
+        try {
+            ResponseEntity<byte[]> response = restClient.get()
+                    .uri(imageUrl)
+                    .retrieve()
+                    .toEntity(byte[].class);
+
+            byte[] data = response.getBody();
+            if (data == null || data.length == 0) {
+                return null;
+            }
+
+            // Content-Type 추출, 기본값 image/jpeg
+            String contentType = "image/jpeg";
+            MediaType mediaType = response.getHeaders().getContentType();
+            if (mediaType != null) {
+                contentType = mediaType.toString();
+            }
+
+            String key = imageStorageClient.generateKey(source, imageUrl);
+            return imageStorageClient.upload(data, contentType, key);
+        } catch (Exception e) {
+            log.debug("이미지 다운로드/업로드 실패: url={}, error={}", imageUrl, e.getMessage());
+            return null;
+        }
     }
 
     private List<String> fetchSitemap(String sitemapUrl, int depth) {

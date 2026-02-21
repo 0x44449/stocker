@@ -37,6 +37,7 @@ usage() {
     echo "  news-analyzer    News Analyzer 서버만"
     echo "  admin-web        Admin Web 서버만"
     echo "  postgres         PostgreSQL만"
+    echo "  minio            MinIO만"
     echo "  (생략시 api, ingest, news-analyzer, admin-web)"
     echo ""
     echo "Examples:"
@@ -70,7 +71,7 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
-        api|ingest|news-analyzer|admin-web|postgres)
+        api|ingest|news-analyzer|admin-web|postgres|minio)
             SERVICES+=("$1")
             shift
             ;;
@@ -141,6 +142,7 @@ echo "  - API:           http://localhost:28080/health"
 echo "  - Ingest:        http://localhost:28081/health"
 echo "  - News Analyzer: http://localhost:28000/health"
 echo "  - Admin Web:     http://localhost:23000"
+echo "  - MinIO Console: http://localhost:29001"
 echo ""
 echo "Logs:"
 echo "  docker-compose -f $DOCKER_DIR/docker-compose.yml logs -f"
