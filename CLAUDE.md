@@ -119,7 +119,7 @@ app.sandori.stocker.ingest
 │   ├── common/    # KrxAuthClient, KrxFileClient, KrxSessionProvider
 │   ├── index/     # 시장지수
 │   ├── investor/  # 투자자별 매매동향
-│   ├── stock/     # 종목별 시세
+│   ├── stock/     # 종목별 시세 (일별 + 실시간 10분 간격)
 │   └── master/    # 종목 마스터
 ├── entities/      # JPA entities (API 앱에서 복사)
 └── repositories/  # JPA repositories (API 앱에서 복사)
@@ -139,6 +139,9 @@ app.sandori.stocker.ingest
 - `KrxFileClient`: Common OTP generation + CSV download flow using RestClient
 - Per-data-type modules: `index/`, `investor/`, `stock/`, `master/`
 - Each has: CrawlEngine + CrawlScheduler → CsvParser → Repository
+- `stock/` 모듈은 일별 시세(18:00 1회)와 실시간 시세(평일 09:00~15:50, 10분 간격) 두 가지 수집 경로 보유
+  - 일별: `KrxStockCrawlEngine` → `stock_price_daily_raw`
+  - 실시간: `KrxStockRealtimeCrawlEngine` → `stock_price_realtime_raw` (capturedAt으로 스냅샷 구분)
 
 ### Authentication
 
@@ -199,7 +202,7 @@ apps/news-analyzer/
 
 ## Database
 
-- Flyway migrations in `apps/api/src/main/resources/db/migration/` (V1 through V19)
+- Flyway migrations in `apps/api/src/main/resources/db/migration/` (V1 through V22)
 - Naming: `V1__init.sql`, `V2__add_news_raw.sql`, etc.
 - JPA uses `ddl-auto: validate` (Flyway owns schema)
 - Never modify already-applied migration files; create new versions instead
